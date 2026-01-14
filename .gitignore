@@ -1,2 +1,15 @@
 node_modules
 .DS_Store
+
+# npm
+package-lock.json
+
+# Editor
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+
+# OS
+Thumbs.db
