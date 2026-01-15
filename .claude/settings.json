@@ -28,6 +28,7 @@
       "Bash(ls:*)",
       "Bash(mkdir:*)",
       "Bash(mv:*)",
+      "Bash(rm:*)",
       "Bash(npx markdownlint:*)",
       "Bash(open:*)",
       "Bash(python3:*)",
