@@ -8,6 +8,13 @@ published: false
 
 ## はじめに
 
+:::message
+**この記事の対象者**
+- macOSでChatGPT有料プラン（Pro/Team/Enterprise/Edu）を使用
+- Zoom/Teamsの議事録機能が使えない、または対面会議が多い環境
+- 手動で議事録を書く時間を削減したい方
+:::
+
 「会議の議事録を自動化したいけど、会議ツールの議事録機能は使えない...」
 
 こんな状況、ありませんか？
@@ -20,13 +27,15 @@ published: false
 
 この記事では、macOSでChatGPT（Pro/Team/Enterprise/Edu）を使っている方向けに、議事録作成を効率化する3つのTipsを紹介します。
 
+私の場合、手動で議事録を書くと**20〜30分**かかっていましたが、この方法で**5〜10分**に短縮できました。
+
 ## ChatGPT Record機能とは
 
 ChatGPTのmacOSデスクトップアプリに搭載されている録音・要約機能です。会議を録音すると、AIが自動で要約を生成してくれます。
 
-![Record機能の画面](/images/chatgpt-record-meeting-tips/01-project-initial.png)
+詳しい機能説明は公式ヘルプを参照してください。
 
-詳しい機能説明は[公式ヘルプ](https://help.openai.com/en/articles/11487532-chatgpt-record)を参照してください。
+@[card](https://help.openai.com/en/articles/11487532-chatgpt-record)
 
 ここからは、私が実際に使っている運用Tipsを紹介します。
 
@@ -35,9 +44,6 @@ ChatGPTのmacOSデスクトップアプリに搭載されている録音・要�
 議事録は後から振り返りたいことが多いですよね。しかし、通常のチャットと同じ場所に並ぶと探しづらくなります。
 
 **おすすめ**: 「議事メモ」という専用プロジェクトを作成し、議事録を集約する
-
-![議事メモプロジェクト](/images/chatgpt-record-meeting-tips/01-project-initial.png)
-*専用プロジェクトに議事録を集約*
 
 これにより：
 - 過去の議事録がプロジェクト内に一覧化される
@@ -175,6 +181,15 @@ Record機能が生成する要約は便利ですが、社内で決まった議�
 ## Tip 3: Markdown形式で共有する
 
 作成されたCanvasはMarkdown形式でコピー・エクスポートできます。
+
+### 操作手順
+
+1. Canvas上部の「...」メニューをクリック
+2. 「Copy as Markdown」を選択
+3. Slack/Notion等に貼り付け
+
+![Markdownコピーの操作](/images/chatgpt-record-meeting-tips/07-markdown-export.png)
+*Canvasから「Copy as Markdown」を選択*
 
 これにより：
 - Slackやメールでサッと共有できる
