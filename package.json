@@ -22,7 +22,7 @@
     "markdownlint-cli2": "^0.17.2",
     "prettier": "^3.5.3",
     "secretlint": "^9.3.4",
-    "textlint": "^14.8.4",
+    "textlint": "^15.5.0",
     "textlint-rule-preset-ja-spacing": "^2.4.3",
     "textlint-rule-preset-ja-technical-writing": "^12.0.2",
     "zenn-cli": "^0.3.1"
