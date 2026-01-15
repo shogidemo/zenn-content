@@ -1,2 +1,8 @@
 extends:
   - "@commitlint/config-conventional"
+
+rules:
+  # 日本語コミットメッセージ対応
+  subject-case: [0]  # 大文字小文字ルールを無効化
+  subject-full-stop: [0]  # 末尾の句読点ルールを無効化
+  header-max-length: [2, always, 100]  # 日本語は長くなりがちなので100文字に拡張
