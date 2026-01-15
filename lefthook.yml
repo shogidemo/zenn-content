@@ -1,0 +1,20 @@
+pre-commit:
+  parallel: true
+  commands:
+    prettier:
+      glob: "*.{js,json,md}"
+      run: npx prettier --write {staged_files} && git add {staged_files}
+    textlint:
+      glob: "articles/**/*.md"
+      run: npx textlint {staged_files}
+    markdownlint:
+      glob: "articles/**/*.md"
+      run: npx markdownlint-cli2 {staged_files}
+    secretlint:
+      glob: "**/*"
+      run: npx secretlint {staged_files}
+
+commit-msg:
+  commands:
+    commitlint:
+      run: npx commitlint --edit {1}

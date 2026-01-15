@@ -1,0 +1,19 @@
+{
+  "rules": {
+    "preset-ja-technical-writing": {
+      "sentence-length": { "max": 150 },
+      "max-kanji-continuous-len": { "max": 6 },
+      "no-exclamation-question-mark": false,
+      "ja-no-mixed-period": false,
+      "no-doubled-joshi": {
+        "allow": ["に", "で", "が", "と"]
+      }
+    },
+    "preset-ja-spacing": {
+      "ja-space-between-half-and-full-width": {
+        "space": "never"
+      },
+      "ja-no-space-around-parentheses": false
+    }
+  }
+}
