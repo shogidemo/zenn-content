@@ -1,5 +1,5 @@
 ---
-title: "会議ツールの議事録機能が使えないときのAI議事録術"
+title: "ChatGPT Record機能で議事録作成を効率化する3つのTips"
 emoji: "🎙️"
 type: "tech"
 topics: ["chatgpt", "ai", "productivity", "meeting"]
