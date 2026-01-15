@@ -24,9 +24,11 @@ published: false
 
 私もこの状況で困っていましたが、**ChatGPT Record機能**を使うことで解決しました。対面会議でも、PCのマイクで録音するだけでAIが議事録を作成してくれます。
 
-この記事では、macOSでChatGPT（Pro/Team/Enterprise/Edu）を使っている方向けに、議事録作成を効率化する3つのTipsを紹介します。
+この記事では、macOSでChatGPT（Pro/Team/Enterprise/Edu）を使っている方向けに、議事録作成を効率化する3つのTipsをまとめました。
 
 私の場合、手動で議事録を書くと**20〜30分**かかっていましたが、この方法で**5〜10分**に短縮できました。
+
+:::messageこの記事は2025年1月時点の情報です。ChatGPT macOSデスクトップアプリのRecord機能について記載しています。:::
 
 ## ChatGPT Record機能とは
 
@@ -36,7 +38,7 @@ ChatGPTのmacOSデスクトップアプリに搭載されている録音・要�
 
 @[card](https://help.openai.com/en/articles/11487532-chatgpt-record)
 
-ここからは、私が実際に使っている運用Tipsを紹介します。
+ここからは、私が実際に使っている運用Tipsです。
 
 ## Tip 1: 「議事メモ」専用プロジェクトで管理する
 
@@ -44,7 +46,7 @@ ChatGPTのmacOSデスクトップアプリに搭載されている録音・要�
 
 **おすすめ**: 「議事メモ」という専用プロジェクトを作成し、議事録を集約します。
 
-これにより：
+専用プロジェクトを使うメリットは以下の通りです。
 
 - 過去の議事録がプロジェクト内に一覧化される
 - 検索で目的の会議をすぐに見つけられる
@@ -54,11 +56,11 @@ ChatGPTのmacOSデスクトップアプリに搭載されている録音・要�
 
 Record機能が生成する要約は便利ですが、社内で決まった議事録フォーマットとは異なることが多いです。
 
-![Record機能の出力結果](/images/chatgpt-record-meeting-tips/04-summary-result.png) _Record機能が生成する要約（Overall Summary、Key Points、Action Itemsなど）_
+![Record機能の要約結果画面。Overall Summary、Key Points、Action Itemsなどが表示されている](/images/chatgpt-record-meeting-tips/04-summary-result.png) _Record機能が生成する要約（Overall Summary、Key Points、Action Itemsなど）_
 
 そこで、**チャットでフォーマットを指定して変換を依頼**します。
 
-![フォーマット変換の指示](/images/chatgpt-record-meeting-tips/05-format-request.png) _フォーマットを指定して変換を依頼_
+![ChatGPTにフォーマット変換を依頼しているチャット画面](/images/chatgpt-record-meeting-tips/05-format-request.png) _フォーマットを指定して変換を依頼_
 
 例えば、以下のようなフォーマットを指定すると：
 
@@ -99,7 +101,7 @@ Record機能が生成する要約は便利ですが、社内で決まった議�
 
 :::details 変換後の議事録（例）
 
-![変換後の議事録](/images/chatgpt-record-meeting-tips/06-format-result.png) _社内フォーマットに変換された議事録_
+![社内フォーマットに変換された議事録のCanvas画面](/images/chatgpt-record-meeting-tips/06-format-result.png) _社内フォーマットに変換された議事録_
 
 # 議事録
 
@@ -184,9 +186,9 @@ Record機能が生成する要約は便利ですが、社内で決まった議�
 2. 「Copy as Markdown」を選択
 3. Slack/Notion等に貼り付け
 
-![Markdownコピーの操作](/images/chatgpt-record-meeting-tips/07-markdown-export.png) _Canvasから「Copy as Markdown」を選択_
+![CanvasのメニューからCopy as Markdownを選択している画面](/images/chatgpt-record-meeting-tips/07-markdown-export.png) _Canvasから「Copy as Markdown」を選択_
 
-これにより：
+Markdownでコピーできると便利な点は以下の通りです。
 
 - Slackやメールでサッと共有できる
 - 社内WikiやNotionへの貼り付けが簡単
@@ -206,7 +208,7 @@ Record機能は「誰が話したか」を区別しません。複数人の会�
 
 ## まとめ
 
-ChatGPT Record機能を使った議事録作成のTipsを紹介しました。
+ChatGPT Record機能を使った議事録作成のTipsをまとめました。
 
 1. **専用プロジェクトで管理** - 議事録を一箇所に集約して探しやすく
 2. **社内フォーマットに変換** - フォーマットを指定するだけで自動変換
