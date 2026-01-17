@@ -356,6 +356,12 @@ skillを使えば、この問題をシンプルに解決できます。
 
 「とりあえずAPIを叩いて」というアドホックな使い方から、skillで処理を切り出す設計へ。この一手間で、Claude Codeがより実用的な相棒になります。
 
+## 関連記事
+
+Backlog APIを使った具体的な活用例はこちらで解説しています。
+
+@[card](https://zenn.dev/shosato/articles/backlog-productivity-claude-code)
+
 :::message
 この記事の内容は2026年1月時点のものです。
 
