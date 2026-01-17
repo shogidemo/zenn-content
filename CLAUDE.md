@@ -60,22 +60,22 @@ Zenn（https://zenn.dev）で公開する技術記事を管理するリポジト
 ---
 title: "記事タイトル（60文字以内推奨）"
 emoji: "🤖"
-type: "tech"  # tech: 技術記事 / idea: アイデア記事
-topics: ["claude", "ai", "productivity"]  # 最大5つ
-published: false  # true: 公開 / false: 下書き
+type: "tech" # tech: 技術記事 / idea: アイデア記事
+topics: ["claude", "ai", "productivity"] # 最大5つ
+published: false # true: 公開 / false: 下書き
 ---
 ```
 
 ### Front Matter項目の説明
 
-| 項目 | 必須 | 説明 |
-|------|------|------|
-| title | ✅ | 記事タイトル。SEO的には60文字以内推奨 |
-| emoji | ✅ | 記事のアイキャッチ絵文字（1文字） |
-| type | ✅ | `tech`（技術記事）または `idea`（アイデア記事） |
-| topics | ✅ | タグ。最大5つ。小文字英数字とハイフンのみ |
-| published | ✅ | `true`で公開、`false`で下書き |
-| publication_name | - | Publicationに所属する場合のみ指定 |
+| 項目             | 必須 | 説明                                            |
+| ---------------- | ---- | ----------------------------------------------- |
+| title            | ✅   | 記事タイトル。SEO的には60文字以内推奨           |
+| emoji            | ✅   | 記事のアイキャッチ絵文字（1文字）               |
+| type             | ✅   | `tech`（技術記事）または `idea`（アイデア記事） |
+| topics           | ✅   | タグ。最大5つ。小文字英数字とハイフンのみ       |
+| published        | ✅   | `true`で公開、`false`で下書き                   |
+| publication_name | -    | Publicationに所属する場合のみ指定               |
 
 ### よく使うtopics
 
@@ -108,8 +108,8 @@ typescript, python, testing, agile, scrum
 
 ### コードブロック
 
-```markdown
-```typescript:ファイル名.ts
+````markdown
+````typescript:ファイル名.ts
 // ファイル名付きコードブロック
 const example = "hello";
 ```　← バッククォート3つで閉じる
@@ -118,7 +118,8 @@ const example = "hello";
 - const old = "before";
 + const new = "after";
 ```　← diffハイライト
-```
+````
+````
 
 ### 数式（KaTeX）
 
@@ -131,11 +132,11 @@ $$
 ### 外部コンテンツ埋め込み
 
 ```markdown
-@[card](https://example.com)  # リンクカード
+@[card](https://example.com) # リンクカード
 
-https://github.com/user/repo  # GitHubリポジトリカード（URLのみで自動展開）
+https://github.com/user/repo # GitHubリポジトリカード（URLのみで自動展開）
 
-@[tweet](https://twitter.com/xxx/status/xxx)  # ツイート埋め込み
+@[tweet](https://twitter.com/xxx/status/xxx) # ツイート埋め込み
 ```
 
 ### 脚注
@@ -160,14 +161,31 @@ npx zenn-cli new:article --slug my-article-slug
 - slugはURLの一部になる（`zenn.dev/ユーザー名/articles/slug`）
 - slugは変更すると既存のURLが無効になるので注意
 
-### 2. プレビュー
+### 2. 品質チェック（必須）
+
+**記事作成後、Claude Codeは以下のチェックを自動実行すること。**
+
+```
+1. /check-controversy  → 炎上リスクチェック（🔴高リスクは修正必須）
+2. /review-article     → 記事レビュー（⭐⭐⭐☆☆以下は改善推奨）
+3. /proofread          → 校正チェック（誤字脱字・表記ゆれを修正）
+```
+
+:::message alert
+これらのチェックはユーザーに促すのではなく、**Claude Codeが自動実行**すること。
+チェックをすり抜けて公開されることを防ぐため。
+:::
+
+詳細は `.claude/rules/article-creation-workflow.md` を参照。
+
+### 3. プレビュー
 
 ```bash
 npx zenn-cli preview
 # ブラウザで http://localhost:8000 を開く
 ```
 
-### 3. 公開
+### 4. 公開
 
 1. `published: true` に変更
 2. コミット＆プッシュ
