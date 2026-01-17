@@ -8,6 +8,19 @@
 - **コード・コマンド**: 英語のまま使用
 - **Claude Codeの応答**: 日本語で回答
 
+## 日付に関するルール
+
+記事に日付（「2026年1月時点」など）を記載する際は、**必ず `date` コマンドで現在日を確認すること**。
+
+```bash
+date +%Y年%m月
+```
+
+:::message alert
+日付を記載する前に必ず上記コマンドを実行し、結果を確認してから記載すること。
+思い込みで日付を書かない。
+:::
+
 ## リポジトリ概要
 
 Zenn（https://zenn.dev）で公開する技術記事を管理するリポジトリです。
@@ -108,7 +121,7 @@ typescript, python, testing, agile, scrum
 
 ### コードブロック
 
-````markdown
+`````markdown
 ````typescript:ファイル名.ts
 // ファイル名付きコードブロック
 const example = "hello";
@@ -119,6 +132,8 @@ const example = "hello";
 + const new = "after";
 ```　← diffハイライト
 ````
+`````
+
 ````
 
 ### 数式（KaTeX）
@@ -283,3 +298,4 @@ npx zenn-cli --version
 - Zenn利用規約（https://zenn.dev/terms）を遵守
 - 宣伝目的のみの記事は避ける
 - 技術的に価値のある内容を心がける
+````
