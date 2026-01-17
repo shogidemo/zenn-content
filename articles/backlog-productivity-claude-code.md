@@ -3,7 +3,8 @@ title: "Claude CodeでBacklogの生産性データを可視化してみた"
 emoji: "📊"
 type: "tech"
 topics: ["claudecode", "backlog", "productivity", "api"]
-published: false
+published: true
+published_at: 2026-01-20 07:00
 ---
 
 :::message

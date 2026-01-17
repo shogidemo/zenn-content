@@ -3,7 +3,8 @@ title: "skillでClaude Codeのコンテキスト爆発を防ぐ"
 emoji: "🧠"
 type: "tech"
 topics: ["claudecode", "llm", "api", "設計パターン"]
-published: false
+published: true
+published_at: 2026-01-20 07:00
 ---
 
 :::message
