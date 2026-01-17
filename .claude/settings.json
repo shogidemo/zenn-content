@@ -72,9 +72,7 @@
       "Read(.env)",
       "Read(.env.*)"
     ],
-    "ask": [
-      "Bash(curl:*)"
-    ],
+    "ask": ["Bash(curl:*)"],
     "defaultMode": "plan"
   },
   "env": {
@@ -89,5 +87,6 @@
     "commit-commands@claude-plugins-official": true,
     "frontend-design@claude-plugins-official": true,
     "pr-review-toolkit@claude-plugins-official": true
-  }
+  },
+  "plansDirectory": "./plans"
 }
