@@ -2,7 +2,7 @@
 title: "skillでClaude Codeのコンテキスト爆発を防ぐ"
 emoji: "🧠"
 type: "tech"
-topics: ["claudecode", "skill", "context", "prompt-engineering"]
+topics: ["claudecode", "skill", "llm", "prompt-engineering"]
 published: true
 published_at: 2026-01-20 07:00
 ---
