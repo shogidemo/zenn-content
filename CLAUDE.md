@@ -225,7 +225,8 @@ npx zenn-cli new:article --slug my-article-slug
 ```
 1. /check-controversy  → 炎上リスクチェック（🔴高リスクは修正必須）
 2. /review-article     → 記事レビュー（⭐⭐⭐☆☆以下は改善推奨）
-3. /proofread          → 校正チェック（誤字脱字・表記ゆれを修正）
+3. /ask-codex          → Codexレビュー（参考意見として採否を判断）
+4. /proofread          → 校正チェック（誤字脱字・表記ゆれを修正）
 ```
 
 :::message alert
