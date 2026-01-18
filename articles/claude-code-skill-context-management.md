@@ -4,7 +4,7 @@ emoji: "🧠"
 type: "tech"
 topics: ["claudecode", "skill", "llm", "prompt-engineering"]
 published: true
-published_at: 2026-01-20 07:00
+published_at: 2026-01-19 12:00
 ---
 
 :::message

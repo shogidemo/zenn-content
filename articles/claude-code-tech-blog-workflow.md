@@ -3,7 +3,8 @@ title: "Claude Codeで技術ブログ執筆を仕組み化した話"
 emoji: "📝"
 type: "tech"
 topics: ["claudecode", "zenn", "writing", "automation", "productivity"]
-published: false
+published: true
+published_at: 2026-01-19 12:00
 ---
 
 ## TL;DR
