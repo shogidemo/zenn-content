@@ -23,6 +23,10 @@ published_at: 2026-01-19 12:00
 
 そこで、Claude CodeのRulesとSkillsを使って、執筆プロセスを仕組み化しました。この記事では、どんな課題があり、どう解決したかをお伝えします。
 
+:::message
+この記事の内容は2026年1月時点のものです。
+:::
+
 ## 技術ブログ執筆の「つらさ」
 
 技術ブログを書くとき、私は以下のような「つらさ」を感じていました。
@@ -264,7 +268,8 @@ OK: 「私のチームではTypeScriptを採用して良かったと感じてい
 - [マサカリ避けテクニック](https://zenn.dev/terrierscript/articles/2018-04-25-masakari-yoke)
 - [技術記事を書く人を大事にしよう](https://zenn.dev/kaityo256/articles/save_the_earth)
 - [顧客不在のHard Thingsは炎上しやすい](https://note.com/zaizenyuta/n/n0fe3ae657266)
-  :::
+
+:::
 
 ## 仕組み4: チェック漏れを防ぐ
 
