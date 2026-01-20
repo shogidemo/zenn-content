@@ -1,0 +1,130 @@
+name: Share to X
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "articles/*.md"
+
+jobs:
+  share:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2 # 前のコミットと比較するため
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Find newly published articles
+        id: find-articles
+        run: |
+          # 変更されたファイルを取得
+          CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD -- 'articles/*.md' || echo "")
+
+          if [ -z "$CHANGED_FILES" ]; then
+            echo "articles=[]" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # 新規公開された記事を検出
+          ARTICLES="["
+          FIRST=true
+
+          for file in $CHANGED_FILES; do
+            if [ -f "$file" ]; then
+              # published: true の記事
+              PUBLISHED=$(grep -E "^published:\s*true" "$file" || echo "")
+              if [ -n "$PUBLISHED" ]; then
+                # published_at がある場合は予約公開なのでスキップ
+                PUBLISHED_AT=$(grep -E "^published_at:" "$file" || echo "")
+                if [ -n "$PUBLISHED_AT" ]; then
+                  echo "Skipping $file (scheduled publishing)"
+                  continue
+                fi
+
+                # 前のコミットで published: false だったか確認
+                PREV_PUBLISHED=$(git show HEAD~1:"$file" 2>/dev/null | grep -E "^published:\s*true" || echo "")
+                if [ -z "$PREV_PUBLISHED" ]; then
+                  # 新規公開
+                  SLUG=$(basename "$file" .md)
+                  TITLE=$(grep -E "^title:" "$file" | sed 's/title:\s*["'"'"']\(.*\)["'"'"']/\1/')
+                  TOPICS=$(grep -E "^topics:" "$file" | sed 's/topics:\s*\[//' | sed 's/\]//' | tr -d '"' | tr -d "'" | tr ',' ' ')
+
+                  if [ "$FIRST" = true ]; then
+                    FIRST=false
+                  else
+                    ARTICLES="$ARTICLES,"
+                  fi
+
+                  ARTICLES="$ARTICLES{\"slug\":\"$SLUG\",\"title\":\"$TITLE\",\"topics\":\"$TOPICS\"}"
+                fi
+              fi
+            fi
+          done
+
+          ARTICLES="$ARTICLES]"
+          echo "articles=$ARTICLES" >> $GITHUB_OUTPUT
+
+      - name: Post to X
+        if: steps.find-articles.outputs.articles != '[]'
+        env:
+          X_API_KEY: ${{ secrets.X_API_KEY }}
+          X_API_KEY_SECRET: ${{ secrets.X_API_KEY_SECRET }}
+          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
+          X_ACCESS_TOKEN_SECRET: ${{ secrets.X_ACCESS_TOKEN_SECRET }}
+          ZENN_USERNAME: ${{ secrets.ZENN_USERNAME }}
+          ARTICLES: ${{ steps.find-articles.outputs.articles }}
+        run: |
+          npm install twitter-api-v2
+
+          node << 'EOF'
+          const { TwitterApi } = require('twitter-api-v2');
+
+          const client = new TwitterApi({
+            appKey: process.env.X_API_KEY,
+            appSecret: process.env.X_API_KEY_SECRET,
+            accessToken: process.env.X_ACCESS_TOKEN,
+            accessSecret: process.env.X_ACCESS_TOKEN_SECRET,
+          });
+
+          const articles = JSON.parse(process.env.ARTICLES);
+          const username = process.env.ZENN_USERNAME;
+
+          async function postTweet(article) {
+            const url = `https://zenn.dev/${username}/articles/${article.slug}`;
+            const hashtags = article.topics
+              .split(' ')
+              .filter(t => t)
+              .map(t => `#${t}`)
+              .join(' ');
+
+            const text = `${article.title}\n\n${url}\n\n${hashtags} #zenn`;
+
+            try {
+              await client.v2.tweet(text);
+              console.log(`Posted: ${article.title}`);
+            } catch (error) {
+              console.error(`Failed to post: ${article.title}`);
+              console.error(`Error: ${error.message}`);
+              if (error.message?.includes('credits')) {
+                console.error('');
+                console.error('=== X API課金エラー ===');
+                console.error('X Developer Portalでクレジットをチャージしてください。');
+                console.error('最低$5のチャージが必要です（1投稿あたり$0.01）');
+                console.error('https://developer.twitter.com/');
+              }
+              process.exit(1);
+            }
+          }
+
+          (async () => {
+            for (const article of articles) {
+              await postTweet(article);
+            }
+          })();
+          EOF

@@ -1,0 +1,158 @@
+name: Share Scheduled Articles to X
+
+on:
+  schedule:
+    - cron: "0,30 * * * *" # 30分ごとにチェック
+  workflow_dispatch: # 手動実行も可能
+
+jobs:
+  share:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+
+      - name: Find articles to share
+        id: find-articles
+        run: |
+          # 現在時刻（UTC）
+          NOW=$(date -u +%Y-%m-%dT%H:%M)
+          echo "Current UTC time: $NOW"
+
+          ARTICLES="["
+          FIRST=true
+
+          for file in articles/*.md; do
+            if [ -f "$file" ]; then
+              # published: true の記事
+              PUBLISHED=$(grep -E "^published:\s*true" "$file" || echo "")
+              if [ -n "$PUBLISHED" ]; then
+                # published_at を取得
+                PUBLISHED_AT=$(grep -E "^published_at:" "$file" | sed 's/published_at:\s*["'"'"']*\([0-9-]* [0-9:]*\)["'"'"']*/\1/' | xargs)
+
+                if [ -n "$PUBLISHED_AT" ]; then
+                  # JST -> UTC変換（9時間引く）
+                  # published_at は "YYYY-MM-DD HH:MM" 形式
+                  PUBLISHED_AT_UTC=$(TZ=UTC date -d "$(echo $PUBLISHED_AT | sed 's/ /T/') +0900" +%Y-%m-%dT%H:%M 2>/dev/null || echo "")
+
+                  echo "File: $file"
+                  echo "  published_at (JST): $PUBLISHED_AT"
+                  echo "  published_at (UTC): $PUBLISHED_AT_UTC"
+
+                  # x_shared: true がなく、公開時刻を過ぎている場合
+                  X_SHARED=$(grep -E "^x_shared:\s*true" "$file" || echo "")
+                  if [ -z "$X_SHARED" ] && [ -n "$PUBLISHED_AT_UTC" ]; then
+                    if [[ "$PUBLISHED_AT_UTC" < "$NOW" || "$PUBLISHED_AT_UTC" == "$NOW" ]]; then
+                      echo "  -> Ready to share!"
+                      SLUG=$(basename "$file" .md)
+                      TITLE=$(grep -E "^title:" "$file" | sed 's/title:\s*["'"'"']\(.*\)["'"'"']/\1/')
+                      TOPICS=$(grep -E "^topics:" "$file" | sed 's/topics:\s*\[//' | sed 's/\]//' | tr -d '"' | tr -d "'" | tr ',' ' ')
+
+                      if [ "$FIRST" = true ]; then
+                        FIRST=false
+                      else
+                        ARTICLES="$ARTICLES,"
+                      fi
+
+                      # JSONエスケープ
+                      TITLE_ESCAPED=$(echo "$TITLE" | sed 's/"/\\"/g')
+                      ARTICLES="$ARTICLES{\"slug\":\"$SLUG\",\"title\":\"$TITLE_ESCAPED\",\"topics\":\"$TOPICS\",\"file\":\"$file\"}"
+                    else
+                      echo "  -> Not yet (scheduled for future)"
+                    fi
+                  elif [ -n "$X_SHARED" ]; then
+                    echo "  -> Already shared"
+                  fi
+                fi
+              fi
+            fi
+          done
+
+          ARTICLES="$ARTICLES]"
+          echo "articles=$ARTICLES" >> $GITHUB_OUTPUT
+          echo "Found articles: $ARTICLES"
+
+      - name: Post to X and mark as shared
+        if: steps.find-articles.outputs.articles != '[]'
+        env:
+          X_API_KEY: ${{ secrets.X_API_KEY }}
+          X_API_KEY_SECRET: ${{ secrets.X_API_KEY_SECRET }}
+          X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
+          X_ACCESS_TOKEN_SECRET: ${{ secrets.X_ACCESS_TOKEN_SECRET }}
+          ZENN_USERNAME: ${{ secrets.ZENN_USERNAME }}
+          ARTICLES: ${{ steps.find-articles.outputs.articles }}
+        run: |
+          npm install twitter-api-v2
+
+          node << 'EOF'
+          const { TwitterApi } = require('twitter-api-v2');
+          const fs = require('fs');
+
+          const client = new TwitterApi({
+            appKey: process.env.X_API_KEY,
+            appSecret: process.env.X_API_KEY_SECRET,
+            accessToken: process.env.X_ACCESS_TOKEN,
+            accessSecret: process.env.X_ACCESS_TOKEN_SECRET,
+          });
+
+          const articles = JSON.parse(process.env.ARTICLES);
+          const username = process.env.ZENN_USERNAME;
+
+          async function postTweet(article) {
+            const url = `https://zenn.dev/${username}/articles/${article.slug}`;
+            const hashtags = article.topics
+              .split(' ')
+              .filter(t => t)
+              .map(t => `#${t}`)
+              .join(' ');
+
+            const text = `${article.title}\n\n${url}\n\n${hashtags} #zenn`;
+
+            try {
+              await client.v2.tweet(text);
+              console.log(`Posted: ${article.title}`);
+
+              // x_shared: true をファイルに追加
+              let content = fs.readFileSync(article.file, 'utf8');
+              // published_at の次の行に x_shared: true を追加
+              content = content.replace(/^(published_at:.*)$/m, '$1\nx_shared: true');
+              fs.writeFileSync(article.file, content);
+
+              return true;
+            } catch (error) {
+              console.error(`Failed to post: ${article.title}`);
+              console.error(`Error: ${error.message}`);
+              if (error.message?.includes('credits')) {
+                console.error('');
+                console.error('=== X API課金エラー ===');
+                console.error('X Developer Portalでクレジットをチャージしてください。');
+                console.error('最低$5のチャージが必要です（1投稿あたり$0.01）');
+                console.error('https://developer.twitter.com/');
+              }
+              return false;
+            }
+          }
+
+          (async () => {
+            let hasChanges = false;
+            for (const article of articles) {
+              if (await postTweet(article)) {
+                hasChanges = true;
+              }
+            }
+            process.exit(hasChanges ? 0 : 1);
+          })();
+          EOF
+
+      - name: Commit changes
+        if: steps.find-articles.outputs.articles != '[]'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add articles/*.md
+          git diff --staged --quiet || git commit -m "chore: mark articles as shared to X"
+          git push
