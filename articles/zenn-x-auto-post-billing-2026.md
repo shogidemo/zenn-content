@@ -74,6 +74,52 @@ Zennの予約公開では `published: true` と `published_at` の両方が必�
 | `share-to-x.yml`           | push時   | 即時公開記事をXに投稿        |
 | `share-scheduled-to-x.yml` | 30分ごと | 予約公開記事を公開時刻に投稿 |
 
+### 処理フロー
+
+#### 即時公開の場合
+
+```mermaid
+sequenceDiagram
+    participant U as ユーザー
+    participant GH as GitHub
+    participant X as X API
+    participant Z as Zenn
+
+    U->>GH: 記事をpush<br/>(published: true)
+    GH->>GH: share-to-x.yml 実行
+    GH->>GH: 新規公開記事を検出
+    GH->>X: 投稿
+    X-->>GH: 成功
+    GH->>Z: デプロイ（自動）
+    Z-->>U: 記事公開
+```
+
+#### 予約公開の場合
+
+```mermaid
+sequenceDiagram
+    participant U as ユーザー
+    participant GH as GitHub
+    participant X as X API
+    participant Z as Zenn
+
+    U->>GH: 記事をpush<br/>(published_at: 07:00)
+    GH->>Z: デプロイ（自動）
+    Note over Z: 予約状態で待機
+
+    loop 30分ごと
+        GH->>GH: share-scheduled-to-x.yml 実行
+        GH->>GH: 公開時刻をチェック
+    end
+
+    Note over GH: 07:00になったら
+    GH->>X: 投稿
+    X-->>GH: 成功
+    GH->>GH: x_shared: true を追加
+    GH->>GH: 自動コミット
+    Z-->>U: 記事公開（Zenn側で自動）
+```
+
 ### 投稿フォーマット
 
 デフォルトでは以下の定型フォーマットで投稿されます：
