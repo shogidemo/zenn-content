@@ -74,6 +74,10 @@ Zennの予約公開では `published: true` と `published_at` の両方が必�
 | `share-to-x.yml`           | push時   | 即時公開記事をXに投稿        |
 | `share-scheduled-to-x.yml` | 30分ごと | 予約公開記事を公開時刻に投稿 |
 
+:::message
+予約公開用Workflowは30分間隔で実行されるため、X投稿は公開時刻から**最大30分程度遅れる**ことがあります。より短い間隔にしたい場合はcronの設定を変更してください。
+:::
+
 ### 処理フロー
 
 #### 即時公開の場合
@@ -134,6 +138,10 @@ sequenceDiagram
 
 ハッシュタグは記事の`topics`から自動生成されます。
 
+:::message
+`topics`はインライン形式（`topics: ["a", "b"]`）のみ対応しています。YAML複数行リスト形式（`topics:\n  - a`）は対応していません。
+:::
+
 ### カスタム投稿内容
 
 Front Matterに`x_post`を追加すると、カスタム内容でX投稿できます：
@@ -151,7 +159,7 @@ x_post: |
 ---
 ```
 
-- `{url}` プレースホルダーは記事URLに自動置換されます
+- `{url}` プレースホルダーは記事URLに自動置換されます（現時点で利用可能なプレースホルダーは `{url}` のみです）
 - `x_post`がなければ定型フォーマットにフォールバックします
 
 ## Workflow 1: 即時公開用
@@ -474,11 +482,15 @@ jobs:
 - `published_at`をパースしてJST→UTC変換
 - 投稿後に**`x_shared: true`をFront Matterに追加**して重複投稿を防止
 - 変更を自動コミット＆プッシュ
-- X投稿が失敗した場合はジョブを失敗させ、`x_shared`は追加しない（再試行可能）
+- X投稿が失敗した記事には`x_shared`を追加しない（次回実行時に再試行される）
+- 複数記事がある場合、一部が失敗しても成功した記事は処理される
 
 :::message alert
-このWorkflowはリポジトリへの書き込みが必要です。GitHub Actionsのデフォルト権限が`read`の場合は、Workflow内で`permissions: contents: write`を追加するか、リポジトリ設定でWorkflowの権限を変更してください。
-:::
+このWorkflowはリポジトリへの書き込みが必要です。`git push`が失敗する場合は以下を確認してください：
+
+- **権限不足**: Workflow内で`permissions: contents: write`を追加するか、リポジトリ設定でWorkflowの権限を変更
+- **ブランチ保護**: mainブランチが保護されている場合、GitHub Actionsからのpushが拒否されることがあります。保護ルールで「Allow GitHub Actions to create and approve pull requests」を有効にするか、PATを使用してください
+  :::
 
 ### Front Matterの例
 
@@ -491,7 +503,7 @@ published_at: 2026-01-22 07:00 # JSTで指定（YYYY-MM-DD HH:MM形式）
 ```
 
 :::message
-`published_at`は**JST（日本時間）で`YYYY-MM-DD HH:MM`形式**で記述してください。スクリプト内で`+0900`としてUTCに変換しています。
+`published_at`は**JST（日本時間）で`YYYY-MM-DD HH:MM`形式**で記述してください（[Zenn CLIガイド](https://zenn.dev/zenn/articles/zenn-cli-guide)参照）。スクリプト内で`+0900`としてUTCに変換しています。
 :::
 
 投稿後は以下のようになります：
