@@ -3,7 +3,8 @@ title: "Zenn予約公開記事をXに自動投稿するGitHub Actionsを作っ�
 emoji: "🔄"
 type: "tech"
 topics: ["zenn", "x", "githubactions", "automation"]
-published: false
+published: true
+published_at: 2026-01-21 07:00
 ---
 
 ## TL;DR
