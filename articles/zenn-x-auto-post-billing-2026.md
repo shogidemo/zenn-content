@@ -5,6 +5,15 @@ type: "tech"
 topics: ["zenn", "x", "githubactions", "automation"]
 published: true
 published_at: 2026-01-21 07:00
+x_post: |
+  Zennの予約公開とX投稿を連携させるGitHub Actionsを作りました！
+
+  予約時刻になったら自動でXにも投稿されます。
+  X API課金（2026年1月時点）についても触れています。
+
+  {url}
+
+  #zenn #githubactions #automation
 ---
 
 ## TL;DR
@@ -67,6 +76,8 @@ Zennの予約公開では `published: true` と `published_at` の両方が必�
 
 ### 投稿フォーマット
 
+デフォルトでは以下の定型フォーマットで投稿されます：
+
 ```
 {記事タイトル}
 
@@ -76,6 +87,26 @@ Zennの予約公開では `published: true` と `published_at` の両方が必�
 ```
 
 ハッシュタグは記事の`topics`から自動生成されます。
+
+### カスタム投稿内容
+
+Front Matterに`x_post`を追加すると、カスタム内容でX投稿できます：
+
+```yaml
+---
+title: "記事タイトル"
+x_post: |
+  Zennの予約公開とX投稿を連携させるGitHub Actionsを作りました！
+  予約時刻に自動でXにも投稿されます。
+
+  {url}
+
+  #zenn #githubactions
+---
+```
+
+- `{url}` プレースホルダーは記事URLに自動置換されます
+- `x_post`がなければ定型フォーマットにフォールバックします
 
 ## Workflow 1: 即時公開用
 
@@ -144,7 +175,7 @@ jobs:
                     ARTICLES="$ARTICLES,"
                   fi
 
-                  ARTICLES="$ARTICLES{\"slug\":\"$SLUG\",\"title\":\"$TITLE\",\"topics\":\"$TOPICS\"}"
+                  ARTICLES="$ARTICLES{\"slug\":\"$SLUG\",\"title\":\"$TITLE\",\"topics\":\"$TOPICS\",\"file\":\"$file\"}"
                 fi
               fi
             fi
@@ -167,6 +198,7 @@ jobs:
 
           node << 'EOF'
           const { TwitterApi } = require('twitter-api-v2');
+          const fs = require('fs');
 
           const client = new TwitterApi({
             appKey: process.env.X_API_KEY,
@@ -178,15 +210,29 @@ jobs:
           const articles = JSON.parse(process.env.ARTICLES);
           const username = process.env.ZENN_USERNAME;
 
+          // Front Matterからx_postを取得
+          function getXPost(filePath) {
+            const content = fs.readFileSync(filePath, 'utf8');
+            const match = content.match(/^---\n([\s\S]*?)\n---/);
+            if (!match) return null;
+            const frontMatter = match[1];
+            const xPostMatch = frontMatter.match(/^x_post:\s*[|>]-?\s*\n((?:[ \t]+.+\n?)+)/m);
+            if (xPostMatch) {
+              return xPostMatch[1].split('\n').map(line => line.replace(/^[ \t]+/, '')).join('\n').trim();
+            }
+            const singleLineMatch = frontMatter.match(/^x_post:\s*["']?(.+?)["']?\s*$/m);
+            return singleLineMatch ? singleLineMatch[1] : null;
+          }
+
           async function postTweet(article) {
             const url = `https://zenn.dev/${username}/articles/${article.slug}`;
-            const hashtags = article.topics
-              .split(' ')
-              .filter(t => t)
-              .map(t => `#${t}`)
-              .join(' ');
+            const hashtags = article.topics.split(' ').filter(t => t).map(t => `#${t}`).join(' ');
 
-            const text = `${article.title}\n\n${url}\n\n${hashtags} #zenn`;
+            // x_postがあればそれを使用、なければ定型フォーマット
+            const customPost = getXPost(article.file);
+            const text = customPost
+              ? customPost.replace(/\{url\}/g, url)
+              : `${article.title}\n\n${url}\n\n${hashtags} #zenn`;
 
             try {
               await client.v2.tweet(text);
@@ -313,15 +359,29 @@ jobs:
           const articles = JSON.parse(process.env.ARTICLES);
           const username = process.env.ZENN_USERNAME;
 
+          // Front Matterからx_postを取得
+          function getXPost(filePath) {
+            const content = fs.readFileSync(filePath, 'utf8');
+            const match = content.match(/^---\n([\s\S]*?)\n---/);
+            if (!match) return null;
+            const frontMatter = match[1];
+            const xPostMatch = frontMatter.match(/^x_post:\s*[|>]-?\s*\n((?:[ \t]+.+\n?)+)/m);
+            if (xPostMatch) {
+              return xPostMatch[1].split('\n').map(line => line.replace(/^[ \t]+/, '')).join('\n').trim();
+            }
+            const singleLineMatch = frontMatter.match(/^x_post:\s*["']?(.+?)["']?\s*$/m);
+            return singleLineMatch ? singleLineMatch[1] : null;
+          }
+
           async function postTweet(article) {
             const url = `https://zenn.dev/${username}/articles/${article.slug}`;
-            const hashtags = article.topics
-              .split(' ')
-              .filter(t => t)
-              .map(t => `#${t}`)
-              .join(' ');
+            const hashtags = article.topics.split(' ').filter(t => t).map(t => `#${t}`).join(' ');
 
-            const text = `${article.title}\n\n${url}\n\n${hashtags} #zenn`;
+            // x_postがあればそれを使用、なければ定型フォーマット
+            const customPost = getXPost(article.file);
+            const text = customPost
+              ? customPost.replace(/\{url\}/g, url)
+              : `${article.title}\n\n${url}\n\n${hashtags} #zenn`;
 
             try {
               await client.v2.tweet(text);

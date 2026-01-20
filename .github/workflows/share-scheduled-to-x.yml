@@ -102,6 +102,27 @@ jobs:
           const articles = JSON.parse(process.env.ARTICLES);
           const username = process.env.ZENN_USERNAME;
 
+          // Front Matterからx_postを取得
+          function getXPost(filePath) {
+            const content = fs.readFileSync(filePath, 'utf8');
+            const match = content.match(/^---\n([\s\S]*?)\n---/);
+            if (!match) return null;
+
+            const frontMatter = match[1];
+            // x_post: | または x_post: > のマルチライン対応
+            const xPostMatch = frontMatter.match(/^x_post:\s*[|>]-?\s*\n((?:[ \t]+.+\n?)+)/m);
+            if (xPostMatch) {
+              // インデントを除去
+              return xPostMatch[1].split('\n').map(line => line.replace(/^[ \t]+/, '')).join('\n').trim();
+            }
+            // 単一行の場合
+            const singleLineMatch = frontMatter.match(/^x_post:\s*["']?(.+?)["']?\s*$/m);
+            if (singleLineMatch) {
+              return singleLineMatch[1];
+            }
+            return null;
+          }
+
           async function postTweet(article) {
             const url = `https://zenn.dev/${username}/articles/${article.slug}`;
             const hashtags = article.topics
@@ -110,7 +131,17 @@ jobs:
               .map(t => `#${t}`)
               .join(' ');
 
-            const text = `${article.title}\n\n${url}\n\n${hashtags} #zenn`;
+            // x_postがあればそれを使用、なければ定型フォーマット
+            let text;
+            const customPost = getXPost(article.file);
+            if (customPost) {
+              // {url}プレースホルダーを置換
+              text = customPost.replace(/\{url\}/g, url);
+              console.log('Using custom x_post');
+            } else {
+              text = `${article.title}\n\n${url}\n\n${hashtags} #zenn`;
+              console.log('Using default format');
+            }
 
             try {
               await client.v2.tweet(text);
