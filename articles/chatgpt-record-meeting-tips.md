@@ -46,6 +46,8 @@ ChatGPTのmacOSデスクトップアプリに搭載されている録音・要�
 
 試しに、架空のプロジェクト進捗会議の原稿を読み上げて、Record機能で議事メモを作成してみました。
 
+<!-- textlint-disable ja-technical-writing/ja-no-weak-phrase, ja-technical-writing/no-doubled-joshi -->
+
 :::details読み上げた原稿（約8分）
 
 **田中**:
@@ -134,6 +136,8 @@ Googleフォームでアンケートを用意しています。使いやすさ�
 なければ、本日の会議は以上です。皆さん、お疲れ様でした。
 
 :::
+
+<!-- textlint-enable ja-technical-writing/ja-no-weak-phrase, ja-technical-writing/no-doubled-joshi -->
 
 この原稿を録音した結果、以下のような要約が生成されました。
 
