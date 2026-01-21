@@ -4,7 +4,7 @@ emoji: "🎙️"
 type: "tech"
 topics: ["chatgpt", "ai", "productivity", "meeting"]
 published: false
-x_shared: false
+x_shared: true
 ---
 
 ## はじめに
