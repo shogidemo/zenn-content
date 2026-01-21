@@ -1,0 +1,99 @@
+name: Dependabot Auto Merge
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  metadata:
+    runs-on: ubuntu-latest
+    if: github.actor == 'dependabot[bot]'
+    outputs:
+      update-type: ${{ steps.metadata.outputs.update-type }}
+      dependency-names: ${{ steps.metadata.outputs.dependency-names }}
+      package-ecosystem: ${{ steps.metadata.outputs.package-ecosystem }}
+    steps:
+      - name: Fetch Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+  test:
+    needs: metadata
+    runs-on: ubuntu-latest
+    if: needs.metadata.outputs.package-ecosystem == 'npm_and_yarn'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run lint
+        run: npm run lint
+
+  validate-actions:
+    needs: metadata
+    runs-on: ubuntu-latest
+    if: needs.metadata.outputs.package-ecosystem == 'github_actions'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate workflow syntax
+        run: |
+          for file in .github/workflows/*.yml; do
+            echo "Validating $file"
+            python3 -c "import yaml; yaml.safe_load(open('$file'))"
+          done
+
+  auto-merge:
+    needs: [metadata, test, validate-actions]
+    runs-on: ubuntu-latest
+    if: |
+      always() &&
+      needs.metadata.result == 'success' &&
+      (needs.test.result == 'success' || needs.test.result == 'skipped') &&
+      (needs.validate-actions.result == 'success' || needs.validate-actions.result == 'skipped') &&
+      (needs.metadata.outputs.update-type == 'version-update:semver-minor' ||
+       needs.metadata.outputs.update-type == 'version-update:semver-patch')
+    steps:
+      - name: Enable auto-merge
+        run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  label-major:
+    needs: metadata
+    runs-on: ubuntu-latest
+    if: needs.metadata.outputs.update-type == 'version-update:semver-major'
+    steps:
+      - name: Add review-required label
+        run: gh pr edit "$PR_URL" --add-label "review-required,major-update"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Add comment for major update
+        run: |
+          gh pr comment "$PR_URL" --body "## :warning: メジャーバージョンアップデート
+
+          このPRはメジャーバージョンのアップデートを含んでいます。
+          Breaking changesがある可能性があるため、手動でのレビューが必要です。
+
+          **更新内容**: ${{ needs.metadata.outputs.dependency-names }}
+
+          確認後、問題がなければマージしてください。"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
