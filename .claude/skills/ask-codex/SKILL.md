@@ -10,10 +10,10 @@ Codex CLIを使用してコーディング支援を受ける。タスクの種�
 
 ## モデル選択ガイドライン
 
-| タスク種別       | モデル            |
-| ---------------- | ----------------- |
-| コーディング関連 | gpt-5.2-codex-max |
-| それ以外         | gpt-5.2           |
+| タスク種別       | モデル        |
+| ---------------- | ------------- |
+| コーディング関連 | gpt-5.2-codex |
+| それ以外         | gpt-5.2       |
 
 ### コーディング関連の例
 
@@ -72,15 +72,15 @@ codex exec -m <MODEL> -c 'model_reasoning_effort="<EFFORT>"' "プロンプト"
 **複雑なコーディングタスク:**
 
 ```bash
-# アーキテクチャレビュー → gpt-5.2-codex-max + xhigh
-codex exec -m gpt-5.2-codex-max -c 'model_reasoning_effort="xhigh"' "このプロジェクトのアーキテクチャをレビューしてください"
+# アーキテクチャレビュー → gpt-5.2-codex + xhigh
+codex exec -m gpt-5.2-codex -c 'model_reasoning_effort="xhigh"' "このプロジェクトのアーキテクチャをレビューしてください"
 ```
 
 **通常のコーディングタスク:**
 
 ```bash
-# 単一関数の説明 → gpt-5.2-codex-max + medium
-codex exec -m gpt-5.2-codex-max -c 'model_reasoning_effort="medium"' "src/utils.tsのformatDate関数は何をしていますか？"
+# 単一関数の説明 → gpt-5.2-codex + medium
+codex exec -m gpt-5.2-codex -c 'model_reasoning_effort="medium"' "src/utils.tsのformatDate関数は何をしていますか？"
 ```
 
 **複雑な記事レビュー:**
