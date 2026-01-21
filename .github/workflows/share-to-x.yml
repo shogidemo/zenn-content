@@ -59,23 +59,28 @@ jobs:
 
           for file in $CHANGED_FILES; do
             if [ -f "$file" ]; then
+              # Front Matter（最初の---から次の---まで）を抽出
+              # 本文中のサンプルコードを誤検出しないようにする
+              FRONT_MATTER=$(sed -n '2,/^---$/p' "$file" | head -n -1)
+
               # published: true の記事
-              PUBLISHED=$(grep -E "^published:\s*true" "$file" || echo "")
+              PUBLISHED=$(echo "$FRONT_MATTER" | grep -E "^published:\s*true" || echo "")
               if [ -n "$PUBLISHED" ]; then
                 # published_at がある場合は予約公開なのでスキップ
-                PUBLISHED_AT=$(grep -E "^published_at:" "$file" || echo "")
+                PUBLISHED_AT=$(echo "$FRONT_MATTER" | grep -E "^published_at:" || echo "")
                 if [ -n "$PUBLISHED_AT" ]; then
                   echo "Skipping $file (scheduled publishing)"
                   continue
                 fi
 
                 # push前の状態で published: true だったか確認
-                PREV_PUBLISHED=$(git show "$BEFORE_SHA":"$file" 2>/dev/null | grep -E "^published:\s*true" || echo "")
+                PREV_FRONT_MATTER=$(git show "$BEFORE_SHA":"$file" 2>/dev/null | sed -n '2,/^---$/p' | head -n -1 || echo "")
+                PREV_PUBLISHED=$(echo "$PREV_FRONT_MATTER" | grep -E "^published:\s*true" || echo "")
                 if [ -z "$PREV_PUBLISHED" ]; then
                   # 新規公開
                   SLUG=$(basename "$file" .md)
-                  TITLE=$(grep -E "^title:" "$file" | sed 's/title:\s*["'"'"']\(.*\)["'"'"']/\1/')
-                  TOPICS=$(grep -E "^topics:" "$file" | sed 's/topics:\s*\[//' | sed 's/\]//' | tr -d '"' | tr -d "'" | tr ',' ' ')
+                  TITLE=$(echo "$FRONT_MATTER" | grep -E "^title:" | sed 's/title:\s*["'"'"']\(.*\)["'"'"']/\1/')
+                  TOPICS=$(echo "$FRONT_MATTER" | grep -E "^topics:" | sed 's/topics:\s*\[//' | sed 's/\]//' | tr -d '"' | tr -d "'" | tr ',' ' ')
 
                   if [ "$FIRST" = true ]; then
                     FIRST=false

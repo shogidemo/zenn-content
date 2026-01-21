@@ -38,11 +38,15 @@ jobs:
 
           for file in articles/*.md; do
             if [ -f "$file" ]; then
+              # Front Matter（最初の---から次の---まで）を抽出
+              # 本文中のサンプルコードを誤検出しないようにする
+              FRONT_MATTER=$(sed -n '2,/^---$/p' "$file" | head -n -1)
+
               # published: true の記事
-              PUBLISHED=$(grep -E "^published:\s*true" "$file" || echo "")
+              PUBLISHED=$(echo "$FRONT_MATTER" | grep -E "^published:\s*true" || echo "")
               if [ -n "$PUBLISHED" ]; then
-                # published_at を取得
-                PUBLISHED_AT=$(grep -E "^published_at:" "$file" | sed 's/published_at:\s*["'"'"']*\([0-9-]* [0-9:]*\)["'"'"']*/\1/' | xargs)
+                # published_at を取得（Front Matterから）
+                PUBLISHED_AT=$(echo "$FRONT_MATTER" | grep -E "^published_at:" | sed 's/published_at:\s*["'"'"']*\([0-9-]* [0-9:]*\)["'"'"']*/\1/' | xargs)
 
                 if [ -n "$PUBLISHED_AT" ]; then
                   # JST -> UTC変換（9時間引く）
@@ -55,14 +59,14 @@ jobs:
 
                   # x_shared: false が明示的にある場合のみ投稿対象
                   # (x_sharedがない記事は対象外 = 既存記事の保護)
-                  X_SHARED_FALSE=$(grep -E "^x_shared:\s*false" "$file" || echo "")
-                  X_SHARED_TRUE=$(grep -E "^x_shared:\s*true" "$file" || echo "")
+                  X_SHARED_FALSE=$(echo "$FRONT_MATTER" | grep -E "^x_shared:\s*false" || echo "")
+                  X_SHARED_TRUE=$(echo "$FRONT_MATTER" | grep -E "^x_shared:\s*true" || echo "")
                   if [ -n "$X_SHARED_FALSE" ] && [ -n "$PUBLISHED_AT_UTC" ]; then
                     if [[ "$PUBLISHED_AT_UTC" < "$NOW" || "$PUBLISHED_AT_UTC" == "$NOW" ]]; then
                       echo "  -> Ready to share!"
                       SLUG=$(basename "$file" .md)
-                      TITLE=$(grep -E "^title:" "$file" | sed 's/title:\s*["'"'"']\(.*\)["'"'"']/\1/')
-                      TOPICS=$(grep -E "^topics:" "$file" | sed 's/topics:\s*\[//' | sed 's/\]//' | tr -d '"' | tr -d "'" | tr ',' ' ')
+                      TITLE=$(echo "$FRONT_MATTER" | grep -E "^title:" | sed 's/title:\s*["'"'"']\(.*\)["'"'"']/\1/')
+                      TOPICS=$(echo "$FRONT_MATTER" | grep -E "^topics:" | sed 's/topics:\s*\[//' | sed 's/\]//' | tr -d '"' | tr -d "'" | tr ',' ' ')
 
                       if [ "$FIRST" = true ]; then
                         FIRST=false
