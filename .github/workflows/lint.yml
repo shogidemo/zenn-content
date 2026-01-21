@@ -8,14 +8,18 @@ on:
       - "articles/**/*.md"
       - "books/**/*.md"
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6
         with:
           node-version-file: ".nvmrc"
           cache: "npm"
@@ -24,7 +28,7 @@ jobs:
         run: npm ci
 
       - name: Run textlint with reviewdog
-        uses: reviewdog/action-textlint@v1
+        uses: tsuyoshicho/action-textlint@689c87690ef3b954b5039bcb15589863c9e021a1 # v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           reporter: github-pr-review

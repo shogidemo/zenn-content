@@ -64,5 +64,13 @@ npx zenn-cli preview
 
 ## ライセンス
 
-- 記事本文: 著作権は筆者に帰属
-- 設定ファイル（.claude/配下）: MIT License
+このリポジトリは複合ライセンスを採用しています。詳細は [LICENSE](./LICENSE) を参照してください。
+
+| 対象                             | ライセンス                                                |
+| -------------------------------- | --------------------------------------------------------- |
+| 記事・本 (`articles/`, `books/`) | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) |
+| コード・設定ファイル             | [MIT License](https://opensource.org/licenses/MIT)        |
+
+## セキュリティ
+
+脆弱性を発見した場合は [SECURITY.md](./SECURITY.md) を参照してください。
