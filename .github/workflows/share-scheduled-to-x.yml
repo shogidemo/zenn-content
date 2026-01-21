@@ -46,9 +46,11 @@ jobs:
                   echo "  published_at (JST): $PUBLISHED_AT"
                   echo "  published_at (UTC): $PUBLISHED_AT_UTC"
 
-                  # x_shared: true がなく、公開時刻を過ぎている場合
-                  X_SHARED=$(grep -E "^x_shared:\s*true" "$file" || echo "")
-                  if [ -z "$X_SHARED" ] && [ -n "$PUBLISHED_AT_UTC" ]; then
+                  # x_shared: false が明示的にある場合のみ投稿対象
+                  # (x_sharedがない記事は対象外 = 既存記事の保護)
+                  X_SHARED_FALSE=$(grep -E "^x_shared:\s*false" "$file" || echo "")
+                  X_SHARED_TRUE=$(grep -E "^x_shared:\s*true" "$file" || echo "")
+                  if [ -n "$X_SHARED_FALSE" ] && [ -n "$PUBLISHED_AT_UTC" ]; then
                     if [[ "$PUBLISHED_AT_UTC" < "$NOW" || "$PUBLISHED_AT_UTC" == "$NOW" ]]; then
                       echo "  -> Ready to share!"
                       SLUG=$(basename "$file" .md)
@@ -67,8 +69,10 @@ jobs:
                     else
                       echo "  -> Not yet (scheduled for future)"
                     fi
-                  elif [ -n "$X_SHARED" ]; then
+                  elif [ -n "$X_SHARED_TRUE" ]; then
                     echo "  -> Already shared"
+                  else
+                    echo "  -> No x_shared flag (skipped)"
                   fi
                 fi
               fi
@@ -150,10 +154,9 @@ jobs:
               await client.v2.tweet(text);
               console.log(`Posted: ${article.title}`);
 
-              // x_shared: true をファイルに追加
+              // x_shared: false を x_shared: true に更新
               let content = fs.readFileSync(article.file, 'utf8');
-              // published_at の次の行に x_shared: true を追加
-              content = content.replace(/^(published_at:.*)$/m, '$1\nx_shared: true');
+              content = content.replace(/^x_shared:\s*false\s*$/m, 'x_shared: true');
               fs.writeFileSync(article.file, content);
 
               return true;
