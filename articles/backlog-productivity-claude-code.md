@@ -73,7 +73,7 @@ Backlog APIを使って、指定したプロジェクトの課題データを取
 
 すると、Claude Codeは以下のようなスクリプトを生成してくれました。
 
-:::details 生成されたスクリプト（backlog_stats.py）
+:::details生成されたスクリプト（backlog_stats.py）
 
 ```python:backlog_stats.py
 #!/usr/bin/env python3
@@ -240,7 +240,7 @@ IssueType,Count
 
 ## 遭遇した問題
 
-実は、この作業中に一つ問題が発生しました。
+実は、この作業中に1つ問題が発生しました。
 
 プロジェクトの課題が1,000件以上あったため、全件取得しようとするとAPIレスポンスが約300KBになり、Claude Codeのコンテキストがかなり消費されてしまいました。
 

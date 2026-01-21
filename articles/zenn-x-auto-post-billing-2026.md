@@ -160,8 +160,8 @@ x_post: |
 ---
 ```
 
-- `{url}` プレースホルダーは記事URLに自動置換されます（現時点で利用可能なプレースホルダーは `{url}` のみです）
-- `x_post`がなければ定型フォーマットにフォールバックします
+- `{url}` プレースホルダーは記事URLに自動置換される（現時点で利用可能なプレースホルダーは `{url}` のみ）
+- `x_post`がなければ定型フォーマットにフォールバックする
 
 ## Workflow 1: 即時公開用
 
@@ -490,7 +490,7 @@ jobs:
 このWorkflowはリポジトリへの書き込みが必要です。`git push`が失敗する場合は以下を確認してください：
 
 - **権限不足**: Workflow内で`permissions: contents: write`を追加するか、リポジトリ設定でWorkflowの権限を変更
-- **ブランチ保護**: mainブランチが保護されている場合、GitHub Actionsからのpushが拒否されることがあります。保護ルールで「Allow GitHub Actions to create and approve pull requests」を有効にするか、PATを使用してください
+- **ブランチ保護**: mainブランチが保護されている場合、GitHub Actionsからのpushが拒否されることがある。保護ルールで「Allow GitHub Actions to create and approve pull requests」を有効にするか、PATを使用する
   :::
 
 ### Front Matterの例
@@ -534,7 +534,7 @@ x_shared: true # 自動追加される
 
 ### 2. GitHub Secretsの設定
 
-リポジトリの Settings → Secrets and variables → Actions に以下を登録：
+リポジトリのSettings→Secrets and variables→Actionsに以下を登録：
 
 | Secret名                | 内容                              |
 | ----------------------- | --------------------------------- |
