@@ -1,11 +1,15 @@
 ---
-title: "Zenn予約公開記事をXに自動投稿するGitHub Actionsを作った"
-emoji: "🔄"
-type: "tech"
-topics: ["zenn", "x", "githubactions", "automation"]
+title: Zenn予約公開記事をXに自動投稿するGitHub Actionsを作った
+emoji: "\U0001F504"
+type: tech
+topics:
+  - zenn
+  - x
+  - githubactions
+  - automation
 published: true
-published_at: 2026-01-21 07:00
-x_shared: false
+published_at: "2026-01-21 07:00"
+x_shared: true
 x_post: |
   Zennの予約公開とX投稿を連携させるGitHub Actionsを作りました！
 
