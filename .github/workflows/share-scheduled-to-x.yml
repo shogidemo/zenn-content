@@ -8,11 +8,18 @@ on:
 permissions:
   contents: write # x_shared: true を追加してコミットするために必要
 
+# 並行実行による重複投稿を防止
+concurrency:
+  group: share-scheduled-to-x-${{ github.ref }}
+  cancel-in-progress: false # 途中キャンセルは二重投稿を誘発するため
+
 jobs:
   share:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # git pull --rebase に必要
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -175,13 +182,30 @@ jobs:
           }
 
           (async () => {
-            let hasChanges = false;
+            let successCount = 0;
+            let failCount = 0;
+            const failedArticles = [];
+
             for (const article of articles) {
               if (await postTweet(article)) {
-                hasChanges = true;
+                successCount++;
+              } else {
+                failCount++;
+                failedArticles.push(article.title);
               }
             }
-            process.exit(hasChanges ? 0 : 1);
+
+            console.log(`\n=== 投稿結果 ===`);
+            console.log(`成功: ${successCount}件, 失敗: ${failCount}件`);
+
+            if (failCount > 0) {
+              console.error(`\n⚠️ 失敗した記事:`);
+              failedArticles.forEach(title => console.error(`  - ${title}`));
+            }
+
+            // 1件でも成功したらx_shared更新のためexit 0
+            // 全て失敗した場合のみexit 1
+            process.exit(successCount > 0 ? 0 : 1);
           })();
           EOF
 
@@ -191,5 +215,20 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add articles/*.md
-          git diff --staged --quiet || git commit -m "chore: mark articles as shared to X"
-          git push
+          git diff --staged --quiet && exit 0
+
+          git commit -m "chore: mark articles as shared to X"
+
+          # git push をリトライ（競合対策）
+          MAX_RETRIES=3
+          for i in $(seq 1 $MAX_RETRIES); do
+            if git push; then
+              echo "Push succeeded on attempt $i"
+              exit 0
+            fi
+            echo "Push failed on attempt $i, retrying with rebase..."
+            git pull --rebase
+          done
+
+          echo "Push failed after $MAX_RETRIES attempts"
+          exit 1

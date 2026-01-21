@@ -7,13 +7,18 @@ on:
     paths:
       - "articles/*.md"
 
+# 並行実行による重複投稿を防止（予約投稿とは別グループ）
+concurrency:
+  group: share-to-x-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   share:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 2 # 前のコミットと比較するため
+          fetch-depth: 0 # 複数コミットのpushに対応するため全履歴を取得
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -22,9 +27,26 @@ jobs:
 
       - name: Find newly published articles
         id: find-articles
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+          AFTER_SHA: ${{ github.event.after }}
         run: |
-          # 変更されたファイルを取得
-          CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD -- 'articles/*.md' || echo "")
+          # 変更されたファイルを取得（push範囲全体を比較）
+          # 初回push（before=0000...）の場合は安全のためスキップ
+          if [[ "$BEFORE_SHA" == "0000000000000000000000000000000000000000" ]]; then
+            echo "Initial push detected, skipping to avoid mass posting"
+            echo "articles=[]" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # BEFORE_SHAが履歴に存在するか確認（force-push対策）
+          if ! git cat-file -e "$BEFORE_SHA" 2>/dev/null; then
+            echo "BEFORE_SHA ($BEFORE_SHA) not found in history (force-push?), skipping"
+            echo "articles=[]" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          CHANGED_FILES=$(git diff --name-only "$BEFORE_SHA" "$AFTER_SHA" -- 'articles/*.md' || echo "")
 
           if [ -z "$CHANGED_FILES" ]; then
             echo "articles=[]" >> $GITHUB_OUTPUT
@@ -47,8 +69,8 @@ jobs:
                   continue
                 fi
 
-                # 前のコミットで published: false だったか確認
-                PREV_PUBLISHED=$(git show HEAD~1:"$file" 2>/dev/null | grep -E "^published:\s*true" || echo "")
+                # push前の状態で published: true だったか確認
+                PREV_PUBLISHED=$(git show "$BEFORE_SHA":"$file" 2>/dev/null | grep -E "^published:\s*true" || echo "")
                 if [ -z "$PREV_PUBLISHED" ]; then
                   # 新規公開
                   SLUG=$(basename "$file" .md)
