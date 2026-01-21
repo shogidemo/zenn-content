@@ -5,6 +5,7 @@ type: "tech"
 topics: ["claudecode", "zenn", "writing", "automation", "productivity"]
 published: true
 published_at: 2026-01-19 12:00
+x_shared: true
 ---
 
 ## TL;DR

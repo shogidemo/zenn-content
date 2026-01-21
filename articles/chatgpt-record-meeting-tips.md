@@ -3,7 +3,8 @@ title: "ChatGPT Record機能で議事録作成を効率化する3つのTips"
 emoji: "🎙️"
 type: "tech"
 topics: ["chatgpt", "ai", "productivity", "meeting"]
-published: true
+published: false
+x_shared: false
 ---
 
 ## はじめに

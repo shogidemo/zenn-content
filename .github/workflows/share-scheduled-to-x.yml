@@ -5,6 +5,9 @@ on:
     - cron: "0,30 * * * *" # 30分ごとにチェック
   workflow_dispatch: # 手動実行も可能
 
+permissions:
+  contents: write # x_shared: true を追加してコミットするために必要
+
 jobs:
   share:
     runs-on: ubuntu-latest
