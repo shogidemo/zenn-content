@@ -24,6 +24,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
 
       - name: Find newly published articles
         id: find-articles
@@ -31,71 +35,9 @@ jobs:
           BEFORE_SHA: ${{ github.event.before }}
           AFTER_SHA: ${{ github.event.after }}
         run: |
-          # 変更されたファイルを取得（push範囲全体を比較）
-          # 初回push（before=0000...）の場合は安全のためスキップ
-          if [[ "$BEFORE_SHA" == "0000000000000000000000000000000000000000" ]]; then
-            echo "Initial push detected, skipping to avoid mass posting"
-            echo "articles=[]" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          # BEFORE_SHAが履歴に存在するか確認（force-push対策）
-          if ! git cat-file -e "$BEFORE_SHA" 2>/dev/null; then
-            echo "BEFORE_SHA ($BEFORE_SHA) not found in history (force-push?), skipping"
-            echo "articles=[]" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          CHANGED_FILES=$(git diff --name-only "$BEFORE_SHA" "$AFTER_SHA" -- 'articles/*.md' || echo "")
-
-          if [ -z "$CHANGED_FILES" ]; then
-            echo "articles=[]" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          # 新規公開された記事を検出
-          ARTICLES="["
-          FIRST=true
-
-          for file in $CHANGED_FILES; do
-            if [ -f "$file" ]; then
-              # Front Matter（最初の---から次の---まで）を抽出
-              # 本文中のサンプルコードを誤検出しないようにする
-              FRONT_MATTER=$(sed -n '2,/^---$/p' "$file" | head -n -1)
-
-              # published: true の記事
-              PUBLISHED=$(echo "$FRONT_MATTER" | grep -E "^published:\s*true" || echo "")
-              if [ -n "$PUBLISHED" ]; then
-                # published_at がある場合は予約公開なのでスキップ
-                PUBLISHED_AT=$(echo "$FRONT_MATTER" | grep -E "^published_at:" || echo "")
-                if [ -n "$PUBLISHED_AT" ]; then
-                  echo "Skipping $file (scheduled publishing)"
-                  continue
-                fi
-
-                # push前の状態で published: true だったか確認
-                PREV_FRONT_MATTER=$(git show "$BEFORE_SHA":"$file" 2>/dev/null | sed -n '2,/^---$/p' | head -n -1 || echo "")
-                PREV_PUBLISHED=$(echo "$PREV_FRONT_MATTER" | grep -E "^published:\s*true" || echo "")
-                if [ -z "$PREV_PUBLISHED" ]; then
-                  # 新規公開
-                  SLUG=$(basename "$file" .md)
-                  TITLE=$(echo "$FRONT_MATTER" | grep -E "^title:" | sed 's/title:\s*["'"'"']\(.*\)["'"'"']/\1/')
-                  TOPICS=$(echo "$FRONT_MATTER" | grep -E "^topics:" | sed 's/topics:\s*\[//' | sed 's/\]//' | tr -d '"' | tr -d "'" | tr ',' ' ')
-
-                  if [ "$FIRST" = true ]; then
-                    FIRST=false
-                  else
-                    ARTICLES="$ARTICLES,"
-                  fi
-
-                  ARTICLES="$ARTICLES{\"slug\":\"$SLUG\",\"title\":\"$TITLE\",\"topics\":\"$TOPICS\",\"file\":\"$file\"}"
-                fi
-              fi
-            fi
-          done
-
-          ARTICLES="$ARTICLES]"
+          ARTICLES=$(node .github/scripts/find-articles.js --immediate --before-sha "$BEFORE_SHA" --after-sha "$AFTER_SHA")
           echo "articles=$ARTICLES" >> $GITHUB_OUTPUT
+          echo "Found articles: $ARTICLES"
 
       - name: Post to X
         if: steps.find-articles.outputs.articles != '[]'
@@ -106,84 +48,4 @@ jobs:
           X_ACCESS_TOKEN_SECRET: ${{ secrets.X_ACCESS_TOKEN_SECRET }}
           ZENN_USERNAME: ${{ secrets.ZENN_USERNAME }}
           ARTICLES: ${{ steps.find-articles.outputs.articles }}
-        run: |
-          npm install twitter-api-v2
-
-          node << 'EOF'
-          const { TwitterApi } = require('twitter-api-v2');
-          const fs = require('fs');
-
-          const client = new TwitterApi({
-            appKey: process.env.X_API_KEY,
-            appSecret: process.env.X_API_KEY_SECRET,
-            accessToken: process.env.X_ACCESS_TOKEN,
-            accessSecret: process.env.X_ACCESS_TOKEN_SECRET,
-          });
-
-          const articles = JSON.parse(process.env.ARTICLES);
-          const username = process.env.ZENN_USERNAME;
-
-          // Front Matterからx_postを取得
-          function getXPost(filePath) {
-            const content = fs.readFileSync(filePath, 'utf8');
-            const match = content.match(/^---\n([\s\S]*?)\n---/);
-            if (!match) return null;
-
-            const frontMatter = match[1];
-            // x_post: | または x_post: > のマルチライン対応
-            const xPostMatch = frontMatter.match(/^x_post:\s*[|>]-?\s*\n((?:[ \t]+.+\n?)+)/m);
-            if (xPostMatch) {
-              // インデントを除去
-              return xPostMatch[1].split('\n').map(line => line.replace(/^[ \t]+/, '')).join('\n').trim();
-            }
-            // 単一行の場合
-            const singleLineMatch = frontMatter.match(/^x_post:\s*["']?(.+?)["']?\s*$/m);
-            if (singleLineMatch) {
-              return singleLineMatch[1];
-            }
-            return null;
-          }
-
-          async function postTweet(article) {
-            const url = `https://zenn.dev/${username}/articles/${article.slug}`;
-            const hashtags = article.topics
-              .split(' ')
-              .filter(t => t)
-              .map(t => `#${t}`)
-              .join(' ');
-
-            // x_postがあればそれを使用、なければ定型フォーマット
-            let text;
-            const customPost = getXPost(article.file);
-            if (customPost) {
-              // {url}プレースホルダーを置換
-              text = customPost.replace(/\{url\}/g, url);
-              console.log('Using custom x_post');
-            } else {
-              text = `${article.title}\n\n${url}\n\n${hashtags} #zenn`;
-              console.log('Using default format');
-            }
-
-            try {
-              await client.v2.tweet(text);
-              console.log(`Posted: ${article.title}`);
-            } catch (error) {
-              console.error(`Failed to post: ${article.title}`);
-              console.error(`Error: ${error.message}`);
-              if (error.message?.includes('credits')) {
-                console.error('');
-                console.error('=== X API課金エラー ===');
-                console.error('X Developer Portalでクレジットをチャージしてください。');
-                console.error('最低$5のチャージが必要です（1投稿あたり$0.01）');
-                console.error('https://developer.twitter.com/');
-              }
-              process.exit(1);
-            }
-          }
-
-          (async () => {
-            for (const article of articles) {
-              await postTweet(article);
-            }
-          })();
-          EOF
+        run: node .github/scripts/post-to-x.js

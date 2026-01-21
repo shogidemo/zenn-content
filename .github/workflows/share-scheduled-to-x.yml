@@ -4,6 +4,12 @@ on:
   schedule:
     - cron: "0,30 * * * *" # 30分ごとにチェック
   workflow_dispatch: # 手動実行も可能
+    inputs:
+      dry_run:
+        description: "Dry run (投稿せずに確認のみ)"
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write # x_shared: true を追加してコミットするために必要
@@ -25,72 +31,15 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
 
       - name: Find articles to share
         id: find-articles
         run: |
-          # 現在時刻（UTC）
-          NOW=$(date -u +%Y-%m-%dT%H:%M)
-          echo "Current UTC time: $NOW"
-
-          ARTICLES="["
-          FIRST=true
-
-          for file in articles/*.md; do
-            if [ -f "$file" ]; then
-              # Front Matter（最初の---から次の---まで）を抽出
-              # 本文中のサンプルコードを誤検出しないようにする
-              FRONT_MATTER=$(sed -n '2,/^---$/p' "$file" | head -n -1)
-
-              # published: true の記事
-              PUBLISHED=$(echo "$FRONT_MATTER" | grep -E "^published:\s*true" || echo "")
-              if [ -n "$PUBLISHED" ]; then
-                # published_at を取得（Front Matterから）
-                PUBLISHED_AT=$(echo "$FRONT_MATTER" | grep -E "^published_at:" | sed 's/published_at:\s*["'"'"']*\([0-9-]* [0-9:]*\)["'"'"']*/\1/' | xargs)
-
-                if [ -n "$PUBLISHED_AT" ]; then
-                  # JST -> UTC変換（9時間引く）
-                  # published_at は "YYYY-MM-DD HH:MM" 形式
-                  PUBLISHED_AT_UTC=$(TZ=UTC date -d "$(echo $PUBLISHED_AT | sed 's/ /T/') +0900" +%Y-%m-%dT%H:%M 2>/dev/null || echo "")
-
-                  echo "File: $file"
-                  echo "  published_at (JST): $PUBLISHED_AT"
-                  echo "  published_at (UTC): $PUBLISHED_AT_UTC"
-
-                  # x_shared: false が明示的にある場合のみ投稿対象
-                  # (x_sharedがない記事は対象外 = 既存記事の保護)
-                  X_SHARED_FALSE=$(echo "$FRONT_MATTER" | grep -E "^x_shared:\s*false" || echo "")
-                  X_SHARED_TRUE=$(echo "$FRONT_MATTER" | grep -E "^x_shared:\s*true" || echo "")
-                  if [ -n "$X_SHARED_FALSE" ] && [ -n "$PUBLISHED_AT_UTC" ]; then
-                    if [[ "$PUBLISHED_AT_UTC" < "$NOW" || "$PUBLISHED_AT_UTC" == "$NOW" ]]; then
-                      echo "  -> Ready to share!"
-                      SLUG=$(basename "$file" .md)
-                      TITLE=$(echo "$FRONT_MATTER" | grep -E "^title:" | sed 's/title:\s*["'"'"']\(.*\)["'"'"']/\1/')
-                      TOPICS=$(echo "$FRONT_MATTER" | grep -E "^topics:" | sed 's/topics:\s*\[//' | sed 's/\]//' | tr -d '"' | tr -d "'" | tr ',' ' ')
-
-                      if [ "$FIRST" = true ]; then
-                        FIRST=false
-                      else
-                        ARTICLES="$ARTICLES,"
-                      fi
-
-                      # JSONエスケープ
-                      TITLE_ESCAPED=$(echo "$TITLE" | sed 's/"/\\"/g')
-                      ARTICLES="$ARTICLES{\"slug\":\"$SLUG\",\"title\":\"$TITLE_ESCAPED\",\"topics\":\"$TOPICS\",\"file\":\"$file\"}"
-                    else
-                      echo "  -> Not yet (scheduled for future)"
-                    fi
-                  elif [ -n "$X_SHARED_TRUE" ]; then
-                    echo "  -> Already shared"
-                  else
-                    echo "  -> No x_shared flag (skipped)"
-                  fi
-                fi
-              fi
-            fi
-          done
-
-          ARTICLES="$ARTICLES]"
+          ARTICLES=$(node .github/scripts/find-articles.js --scheduled)
           echo "articles=$ARTICLES" >> $GITHUB_OUTPUT
           echo "Found articles: $ARTICLES"
 
@@ -104,117 +53,14 @@ jobs:
           ZENN_USERNAME: ${{ secrets.ZENN_USERNAME }}
           ARTICLES: ${{ steps.find-articles.outputs.articles }}
         run: |
-          npm install twitter-api-v2
-
-          node << 'EOF'
-          const { TwitterApi } = require('twitter-api-v2');
-          const fs = require('fs');
-
-          const client = new TwitterApi({
-            appKey: process.env.X_API_KEY,
-            appSecret: process.env.X_API_KEY_SECRET,
-            accessToken: process.env.X_ACCESS_TOKEN,
-            accessSecret: process.env.X_ACCESS_TOKEN_SECRET,
-          });
-
-          const articles = JSON.parse(process.env.ARTICLES);
-          const username = process.env.ZENN_USERNAME;
-
-          // Front Matterからx_postを取得
-          function getXPost(filePath) {
-            const content = fs.readFileSync(filePath, 'utf8');
-            const match = content.match(/^---\n([\s\S]*?)\n---/);
-            if (!match) return null;
-
-            const frontMatter = match[1];
-            // x_post: | または x_post: > のマルチライン対応
-            const xPostMatch = frontMatter.match(/^x_post:\s*[|>]-?\s*\n((?:[ \t]+.+\n?)+)/m);
-            if (xPostMatch) {
-              // インデントを除去
-              return xPostMatch[1].split('\n').map(line => line.replace(/^[ \t]+/, '')).join('\n').trim();
-            }
-            // 単一行の場合
-            const singleLineMatch = frontMatter.match(/^x_post:\s*["']?(.+?)["']?\s*$/m);
-            if (singleLineMatch) {
-              return singleLineMatch[1];
-            }
-            return null;
-          }
-
-          async function postTweet(article) {
-            const url = `https://zenn.dev/${username}/articles/${article.slug}`;
-            const hashtags = article.topics
-              .split(' ')
-              .filter(t => t)
-              .map(t => `#${t}`)
-              .join(' ');
-
-            // x_postがあればそれを使用、なければ定型フォーマット
-            let text;
-            const customPost = getXPost(article.file);
-            if (customPost) {
-              // {url}プレースホルダーを置換
-              text = customPost.replace(/\{url\}/g, url);
-              console.log('Using custom x_post');
-            } else {
-              text = `${article.title}\n\n${url}\n\n${hashtags} #zenn`;
-              console.log('Using default format');
-            }
-
-            try {
-              await client.v2.tweet(text);
-              console.log(`Posted: ${article.title}`);
-
-              // x_shared: false を x_shared: true に更新
-              let content = fs.readFileSync(article.file, 'utf8');
-              content = content.replace(/^x_shared:\s*false\s*$/m, 'x_shared: true');
-              fs.writeFileSync(article.file, content);
-
-              return true;
-            } catch (error) {
-              console.error(`Failed to post: ${article.title}`);
-              console.error(`Error: ${error.message}`);
-              if (error.message?.includes('credits')) {
-                console.error('');
-                console.error('=== X API課金エラー ===');
-                console.error('X Developer Portalでクレジットをチャージしてください。');
-                console.error('最低$5のチャージが必要です（1投稿あたり$0.01）');
-                console.error('https://developer.twitter.com/');
-              }
-              return false;
-            }
-          }
-
-          (async () => {
-            let successCount = 0;
-            let failCount = 0;
-            const failedArticles = [];
-
-            for (const article of articles) {
-              if (await postTweet(article)) {
-                successCount++;
-              } else {
-                failCount++;
-                failedArticles.push(article.title);
-              }
-            }
-
-            console.log(`\n=== 投稿結果 ===`);
-            console.log(`成功: ${successCount}件, 失敗: ${failCount}件`);
-
-            if (failCount > 0) {
-              console.error(`\n⚠️ 失敗した記事:`);
-              failedArticles.forEach(title => console.error(`  - ${title}`));
-            }
-
-            // 1件でも成功したらx_shared更新のためexit 0
-            // 全て失敗した場合のみexit 1
-            process.exit(successCount > 0 ? 0 : 1);
-          })();
-          EOF
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            node .github/scripts/post-to-x.js --dry-run --mark-shared
+          else
+            node .github/scripts/post-to-x.js --mark-shared
+          fi
 
       - name: Commit changes
-        if: steps.find-articles.outputs.articles != '[]'
+        if: steps.find-articles.outputs.articles != '[]' && inputs.dry_run != true
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -231,7 +77,10 @@ jobs:
               exit 0
             fi
             echo "Push failed on attempt $i, retrying with rebase..."
-            git pull --rebase
+            if ! git pull --rebase; then
+              echo "Rebase conflict, aborting rebase..."
+              git rebase --abort 2>/dev/null || true
+            fi
           done
 
           echo "Push failed after $MAX_RETRIES attempts"
