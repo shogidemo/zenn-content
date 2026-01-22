@@ -7,7 +7,7 @@ topics:
   - ai
   - productivity
   - meeting
-published: false
+published: true
 x_shared: true
 qiita_sync: true
 qiita_id: efbd0de7f27b816e7b33
