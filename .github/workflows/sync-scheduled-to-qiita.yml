@@ -1,0 +1,109 @@
+name: Sync Scheduled Articles to Qiita
+
+on:
+  schedule:
+    - cron: "0,30 * * * *" # 30分ごとにチェック
+  workflow_dispatch: # 手動実行も可能
+    inputs:
+      dry_run:
+        description: "Dry run (投稿せずに確認のみ)"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write # qiita_idをFront Matterに追加するため
+
+# 並行実行による競合を防止
+concurrency:
+  group: sync-scheduled-to-qiita-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
+        with:
+          fetch-depth: 0 # git pull --rebase に必要
+
+      - name: Setup Node.js
+        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Find scheduled articles to sync
+        id: find-articles
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+
+          ARTICLES=$(node .github/scripts/find-articles-for-qiita.js)
+
+          # heredoc形式でGITHUB_OUTPUTに書き込み（特殊文字対策）
+          {
+            echo 'articles<<EOF'
+            echo "$ARTICLES"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+          echo "Found articles: $ARTICLES"
+
+      - name: Convert and post to Qiita
+        if: steps.find-articles.outputs.articles != '[]'
+        env:
+          ARTICLES: ${{ steps.find-articles.outputs.articles }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          QIITA_TOKEN: ${{ secrets.QIITA_TOKEN }}
+          DRY_RUN: ${{ inputs.dry_run || false }}
+        run: |
+          set -euo pipefail
+
+          # 変換結果をファイルに出力
+          node .github/scripts/convert-to-qiita.js > /tmp/converted.json
+
+          # 投稿スクリプトに渡す
+          export CONVERTED_ARTICLES=$(cat /tmp/converted.json)
+          if [ "$DRY_RUN" = "true" ]; then
+            node .github/scripts/post-to-qiita.js --dry-run
+          else
+            node .github/scripts/post-to-qiita.js
+          fi
+
+      - name: Commit qiita_id changes
+        if: steps.find-articles.outputs.articles != '[]' && inputs.dry_run != true
+        run: |
+          set -uo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add articles/*.md
+
+          # 変更がなければ正常終了
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+
+          git commit -m "chore: update qiita_id in front matter"
+
+          # git push をリトライ（競合対策）
+          MAX_RETRIES=3
+          for i in $(seq 1 $MAX_RETRIES); do
+            if git push; then
+              echo "Push succeeded on attempt $i"
+              exit 0
+            fi
+            echo "Push failed on attempt $i, retrying with rebase..."
+            if ! git pull --rebase; then
+              echo "Rebase conflict, aborting rebase..."
+              git rebase --abort 2>/dev/null || true
+            fi
+          done
+
+          echo "Push failed after $MAX_RETRIES attempts"
+          exit 1
