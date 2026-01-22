@@ -6,6 +6,7 @@ topics: ["claudecode", "backlog", "productivity", "api"]
 published: true
 published_at: 2026-01-19 12:00
 x_shared: true
+qiita_sync: true
 ---
 
 :::message

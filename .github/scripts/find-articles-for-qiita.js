@@ -31,6 +31,8 @@ function getArticleInfo(filePath) {
 }
 
 function findArticles() {
+  let articles;
+
   if (eventName === "workflow_dispatch") {
     // 手動実行時は全記事を対象（single_slugが指定されていればフィルタ）
     let files = fs.readdirSync(dir).filter((f) => f.endsWith(".md"));
@@ -39,7 +41,7 @@ function findArticles() {
       files = files.filter((f) => path.basename(f, ".md") === singleSlug);
     }
 
-    return files.map((f) => getArticleInfo(path.join(dir, f)));
+    articles = files.map((f) => getArticleInfo(path.join(dir, f)));
   } else {
     // pushトリガー時は変更されたファイルのみ
     if (!changedFiles.trim()) {
@@ -47,8 +49,11 @@ function findArticles() {
     }
 
     const files = changedFiles.trim().split(" ").filter(Boolean);
-    return files.filter((f) => fs.existsSync(f)).map((f) => getArticleInfo(f));
+    articles = files.filter((f) => fs.existsSync(f)).map((f) => getArticleInfo(f));
   }
+
+  // qiita_sync: true の記事のみを対象とする
+  return articles.filter((article) => article.qiita_sync === true);
 }
 
 const articles = findArticles();

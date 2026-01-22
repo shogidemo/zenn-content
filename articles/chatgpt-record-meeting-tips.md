@@ -5,6 +5,7 @@ type: "tech"
 topics: ["chatgpt", "ai", "productivity", "meeting"]
 published: false
 x_shared: true
+qiita_sync: true
 ---
 
 ## はじめに
