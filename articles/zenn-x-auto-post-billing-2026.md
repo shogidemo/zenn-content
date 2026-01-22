@@ -133,7 +133,7 @@ sequenceDiagram
 
 デフォルトでは以下の定型フォーマットで投稿されます：
 
-```
+```text
 {記事タイトル}
 
 {記事URL}
@@ -482,7 +482,7 @@ jobs:
 
 :::
 
-### ポイント
+### 予約公開のポイント
 
 - `published_at`をパースしてJST→UTC変換
 - 投稿後に**`x_shared: true`をFront Matterに追加**して重複投稿を防止

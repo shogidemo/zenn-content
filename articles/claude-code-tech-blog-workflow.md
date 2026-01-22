@@ -60,7 +60,7 @@ x_shared: true
 
 `.claude/skills/` ディレクトリにMarkdownファイルを置くと、`/ファイル名` でClaude Codeから呼び出せるコマンドになります。ルールで「何をチェックするか」を定義し、スキルで「どうチェックするか」を実装するイメージです。詳細は[公式ドキュメント](https://code.claude.com/docs/ja/skills)を参照してください。
 
-```
+```text
 /review-article      → 品質レビュー
 /proofread           → 校正チェック
 /check-controversy   → 炎上リスクチェック
@@ -208,7 +208,7 @@ flowchart TD
 
 各パターンに対して、具体的なNG表現とOK表現を定義しています。
 
-```
+```text
 NG: 「すべてのエンジニアはTypeScriptを使うべきだ」
 OK: 「私のチームではTypeScriptを採用して良かったと感じています」
 ```

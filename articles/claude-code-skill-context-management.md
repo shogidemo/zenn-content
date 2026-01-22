@@ -81,7 +81,7 @@ skillを使うと、データ取得と処理のロジックを**外部スクリ�
 
 ### Before / After
 
-**Before（skillなし）**
+#### Before（skillなし）
 
 ```text
 [コンテキスト]
@@ -90,7 +90,7 @@ skillを使うと、データ取得と処理のロジックを**外部スクリ�
 └── 処理結果
 ```
 
-**After（skillあり）**
+#### After（skillあり）
 
 ```text
 [コンテキスト]
@@ -163,7 +163,7 @@ python .claude/skills/backlog-stats/fetch_issues.py --project PROJECT_KEY
 - 大量のデータを取得する場合、詳細は外部ファイルに出力される
 - コンテキストにはサマリーのみが含まれる
 
-````
+````text
 :::
 
 ### 3. データ取得スクリプト
