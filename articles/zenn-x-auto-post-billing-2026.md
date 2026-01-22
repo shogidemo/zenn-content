@@ -19,6 +19,7 @@ x_post: |
   {url}
 
   #zenn #githubactions #automation
+qiita_id: 4828f72d5d26c6167624
 ---
 
 ## TL;DR
