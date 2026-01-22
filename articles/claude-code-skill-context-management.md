@@ -1,12 +1,17 @@
 ---
-title: "skillでClaude Codeのコンテキスト爆発を防ぐ"
-emoji: "🧠"
-type: "tech"
-topics: ["claudecode", "skill", "llm", "prompt-engineering"]
+title: skillでClaude Codeのコンテキスト爆発を防ぐ
+emoji: "\U0001F9E0"
+type: tech
+topics:
+  - claudecode
+  - skill
+  - llm
+  - prompt-engineering
 published: true
-published_at: 2026-01-19 12:00
+published_at: "2026-01-19 12:00"
 x_shared: true
 qiita_sync: true
+qiita_id: b3edc668ec5bc936f74e
 ---
 
 :::message

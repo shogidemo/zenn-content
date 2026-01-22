@@ -1,12 +1,17 @@
 ---
-title: "Claude CodeでBacklogの生産性データを可視化してみた"
-emoji: "📊"
-type: "tech"
-topics: ["claudecode", "backlog", "productivity", "api"]
+title: Claude CodeでBacklogの生産性データを可視化してみた
+emoji: "\U0001F4CA"
+type: tech
+topics:
+  - claudecode
+  - backlog
+  - productivity
+  - api
 published: true
-published_at: 2026-01-19 12:00
+published_at: "2026-01-19 12:00"
 x_shared: true
 qiita_sync: true
+qiita_id: 9da1a5ad0c6722e778fe
 ---
 
 :::message

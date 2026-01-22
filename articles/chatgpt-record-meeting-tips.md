@@ -1,11 +1,16 @@
 ---
-title: "ChatGPT Record機能で議事録作成を効率化する3つのTips"
-emoji: "🎙️"
-type: "tech"
-topics: ["chatgpt", "ai", "productivity", "meeting"]
+title: ChatGPT Record機能で議事録作成を効率化する3つのTips
+emoji: "\U0001F399️"
+type: tech
+topics:
+  - chatgpt
+  - ai
+  - productivity
+  - meeting
 published: false
 x_shared: true
 qiita_sync: true
+qiita_id: efbd0de7f27b816e7b33
 ---
 
 ## はじめに
