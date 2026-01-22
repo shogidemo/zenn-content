@@ -85,23 +85,20 @@ jobs:
           echo "articles=$ARTICLES" >> $GITHUB_OUTPUT
           echo "Found articles: $ARTICLES"
 
-      - name: Convert articles to Qiita format
+      - name: Convert and post to Qiita
         if: steps.find-articles.outputs.articles != '[]'
-        id: convert
         env:
           ARTICLES: ${{ steps.find-articles.outputs.articles }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-        run: |
-          CONVERTED=$(node .github/scripts/convert-to-qiita.js)
-          echo "converted=$CONVERTED" >> $GITHUB_OUTPUT
-
-      - name: Post to Qiita
-        if: steps.find-articles.outputs.articles != '[]'
-        env:
           QIITA_TOKEN: ${{ secrets.QIITA_TOKEN }}
-          CONVERTED_ARTICLES: ${{ steps.convert.outputs.converted }}
+          DRY_RUN: ${{ inputs.dry_run }}
         run: |
-          if [ "${{ inputs.dry_run }}" = "true" ]; then
+          # 変換結果をファイルに出力
+          node .github/scripts/convert-to-qiita.js > /tmp/converted.json
+
+          # 投稿スクリプトに渡す
+          export CONVERTED_ARTICLES=$(cat /tmp/converted.json)
+          if [ "$DRY_RUN" = "true" ]; then
             node .github/scripts/post-to-qiita.js --dry-run
           else
             node .github/scripts/post-to-qiita.js
