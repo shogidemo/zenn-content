@@ -47,6 +47,8 @@ jobs:
           BEFORE_SHA: ${{ github.event.before }}
           AFTER_SHA: ${{ github.event.after }}
         run: |
+          set -euo pipefail
+
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             # 手動実行時は全記事を対象
             ARTICLES=$(node -e "
@@ -64,7 +66,7 @@ jobs:
             ")
           else
             # pushトリガー時は変更されたファイルのみ
-            CHANGED_FILES=$(git diff --name-only $BEFORE_SHA $AFTER_SHA -- 'articles/*.md' | tr '\n' ' ')
+            CHANGED_FILES=$(git diff --name-only "$BEFORE_SHA" "$AFTER_SHA" -- 'articles/*.md' | tr '\n' ' ')
             if [ -z "$CHANGED_FILES" ]; then
               ARTICLES="[]"
             else
@@ -82,7 +84,13 @@ jobs:
               ")
             fi
           fi
-          echo "articles=$ARTICLES" >> $GITHUB_OUTPUT
+
+          # heredoc形式でGITHUB_OUTPUTに書き込み（特殊文字対策）
+          {
+            echo 'articles<<EOF'
+            echo "$ARTICLES"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
           echo "Found articles: $ARTICLES"
 
       - name: Convert and post to Qiita
@@ -91,8 +99,11 @@ jobs:
           ARTICLES: ${{ steps.find-articles.outputs.articles }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           QIITA_TOKEN: ${{ secrets.QIITA_TOKEN }}
-          DRY_RUN: ${{ inputs.dry_run }}
+          # push時はundefinedになるため、明示的にfalseをデフォルト設定
+          DRY_RUN: ${{ inputs.dry_run || false }}
         run: |
+          set -euo pipefail
+
           # 変換結果をファイルに出力
           node .github/scripts/convert-to-qiita.js > /tmp/converted.json
 
@@ -105,12 +116,20 @@ jobs:
           fi
 
       - name: Commit qiita_id changes
+        # push時はinputs.dry_runがnull/undefinedになるため、明示的に比較
         if: steps.find-articles.outputs.articles != '[]' && inputs.dry_run != true
         run: |
+          set -uo pipefail  # -eは使わない（git diff --stagedの戻り値を利用するため）
+
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add articles/*.md
-          git diff --staged --quiet && exit 0
+
+          # 変更がなければ正常終了
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
 
           git commit -m "chore: update qiita_id in front matter"
 
