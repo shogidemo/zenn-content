@@ -49,51 +49,19 @@ jobs:
       - name: Find articles to sync
         id: find-articles
         env:
+          EVENT_NAME: ${{ github.event_name }}
+          SINGLE_SLUG: ${{ inputs.single_slug }}
           BEFORE_SHA: ${{ github.event.before }}
           AFTER_SHA: ${{ github.event.after }}
-          SINGLE_SLUG: ${{ inputs.single_slug }}
         run: |
           set -euo pipefail
 
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            # 手動実行時は全記事を対象（single_slugが指定されていればフィルタ）
-            ARTICLES=$(node -e "
-              const fs = require('fs');
-              const path = require('path');
-              const matter = require('gray-matter');
-              const singleSlug = process.env.SINGLE_SLUG || '';
-              const dir = 'articles';
-              let files = fs.readdirSync(dir).filter(f => f.endsWith('.md'));
-              if (singleSlug) {
-                files = files.filter(f => path.basename(f, '.md') === singleSlug);
-              }
-              const articles = files.map(f => {
-                const content = fs.readFileSync(path.join(dir, f), 'utf8');
-                const { data } = matter(content);
-                return { file: path.join(dir, f), slug: path.basename(f, '.md'), ...data };
-              });
-              console.log(JSON.stringify(articles));
-            ")
-          else
-            # pushトリガー時は変更されたファイルのみ
-            CHANGED_FILES=$(git diff --name-only "$BEFORE_SHA" "$AFTER_SHA" -- 'articles/*.md' | tr '\n' ' ')
-            if [ -z "$CHANGED_FILES" ]; then
-              ARTICLES="[]"
-            else
-              ARTICLES=$(node -e "
-                const fs = require('fs');
-                const path = require('path');
-                const matter = require('gray-matter');
-                const files = '$CHANGED_FILES'.trim().split(' ').filter(Boolean);
-                const articles = files.filter(f => fs.existsSync(f)).map(f => {
-                  const content = fs.readFileSync(f, 'utf8');
-                  const { data } = matter(content);
-                  return { file: f, slug: path.basename(f, '.md'), ...data };
-                });
-                console.log(JSON.stringify(articles));
-              ")
-            fi
+          # pushトリガー時は変更ファイルを取得
+          if [ "$EVENT_NAME" != "workflow_dispatch" ]; then
+            export CHANGED_FILES=$(git diff --name-only "$BEFORE_SHA" "$AFTER_SHA" -- 'articles/*.md' | tr '\n' ' ')
           fi
+
+          ARTICLES=$(node .github/scripts/find-articles-for-qiita.js)
 
           # heredoc形式でGITHUB_OUTPUTに書き込み（特殊文字対策）
           {
