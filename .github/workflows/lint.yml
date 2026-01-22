@@ -1,12 +1,22 @@
 name: Lint
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - "articles/**/*.md"
+      - "books/**/*.md"
+      - ".markdownlint-cli2.jsonc"
+      - ".textlintrc"
   pull_request:
     branches:
       - main
     paths:
       - "articles/**/*.md"
       - "books/**/*.md"
+      - ".markdownlint-cli2.jsonc"
+      - ".textlintrc"
 
 permissions:
   contents: read
