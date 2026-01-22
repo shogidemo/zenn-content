@@ -1,0 +1,135 @@
+name: Sync to Qiita
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "articles/*.md"
+  workflow_dispatch: # 手動実行（初回フル同期用）
+    inputs:
+      dry_run:
+        description: "Dry run (投稿せずに確認のみ)"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write # qiita_idをFront Matterに追加するため
+
+# 並行実行による競合を防止
+concurrency:
+  group: sync-to-qiita-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    # 自己トリガー防止
+    if: github.actor != 'github-actions[bot]'
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6
+        with:
+          fetch-depth: 2 # 差分検出用
+
+      - name: Setup Node.js
+        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Find articles to sync
+        id: find-articles
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+          AFTER_SHA: ${{ github.event.after }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            # 手動実行時は全記事を対象
+            ARTICLES=$(node -e "
+              const fs = require('fs');
+              const path = require('path');
+              const matter = require('gray-matter');
+              const dir = 'articles';
+              const files = fs.readdirSync(dir).filter(f => f.endsWith('.md'));
+              const articles = files.map(f => {
+                const content = fs.readFileSync(path.join(dir, f), 'utf8');
+                const { data } = matter(content);
+                return { file: path.join(dir, f), slug: path.basename(f, '.md'), ...data };
+              });
+              console.log(JSON.stringify(articles));
+            ")
+          else
+            # pushトリガー時は変更されたファイルのみ
+            CHANGED_FILES=$(git diff --name-only $BEFORE_SHA $AFTER_SHA -- 'articles/*.md' | tr '\n' ' ')
+            if [ -z "$CHANGED_FILES" ]; then
+              ARTICLES="[]"
+            else
+              ARTICLES=$(node -e "
+                const fs = require('fs');
+                const path = require('path');
+                const matter = require('gray-matter');
+                const files = '$CHANGED_FILES'.trim().split(' ').filter(Boolean);
+                const articles = files.filter(f => fs.existsSync(f)).map(f => {
+                  const content = fs.readFileSync(f, 'utf8');
+                  const { data } = matter(content);
+                  return { file: f, slug: path.basename(f, '.md'), ...data };
+                });
+                console.log(JSON.stringify(articles));
+              ")
+            fi
+          fi
+          echo "articles=$ARTICLES" >> $GITHUB_OUTPUT
+          echo "Found articles: $ARTICLES"
+
+      - name: Convert articles to Qiita format
+        if: steps.find-articles.outputs.articles != '[]'
+        id: convert
+        env:
+          ARTICLES: ${{ steps.find-articles.outputs.articles }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          CONVERTED=$(node .github/scripts/convert-to-qiita.js)
+          echo "converted=$CONVERTED" >> $GITHUB_OUTPUT
+
+      - name: Post to Qiita
+        if: steps.find-articles.outputs.articles != '[]'
+        env:
+          QIITA_TOKEN: ${{ secrets.QIITA_TOKEN }}
+          CONVERTED_ARTICLES: ${{ steps.convert.outputs.converted }}
+        run: |
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            node .github/scripts/post-to-qiita.js --dry-run
+          else
+            node .github/scripts/post-to-qiita.js
+          fi
+
+      - name: Commit qiita_id changes
+        if: steps.find-articles.outputs.articles != '[]' && inputs.dry_run != true
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add articles/*.md
+          git diff --staged --quiet && exit 0
+
+          git commit -m "chore: update qiita_id in front matter"
+
+          # git push をリトライ（競合対策）
+          MAX_RETRIES=3
+          for i in $(seq 1 $MAX_RETRIES); do
+            if git push; then
+              echo "Push succeeded on attempt $i"
+              exit 0
+            fi
+            echo "Push failed on attempt $i, retrying with rebase..."
+            if ! git pull --rebase; then
+              echo "Rebase conflict, aborting rebase..."
+              git rebase --abort 2>/dev/null || true
+            fi
+          done
+
+          echo "Push failed after $MAX_RETRIES attempts"
+          exit 1

@@ -12,7 +12,9 @@
     "lint:text:fix": "textlint --fix 'articles/**/*.md'",
     "lint:md": "markdownlint-cli2 'articles/**/*.md'",
     "lint:secret": "secretlint '**/*'",
-    "prepare": "lefthook install"
+    "prepare": "lefthook install",
+    "qiita:convert": "node .github/scripts/convert-to-qiita.js --all --dry-run",
+    "qiita:post": "node .github/scripts/post-to-qiita.js --dry-run"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.3.1",
