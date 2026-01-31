@@ -4,23 +4,12 @@ on:
   push:
     branches:
       - main
-    paths:
-      - "articles/**/*.md"
-      - "books/**/*.md"
-      - ".markdownlint-cli2.jsonc"
-      - ".textlintrc"
   pull_request:
     branches:
       - main
-    paths:
-      - "articles/**/*.md"
-      - "books/**/*.md"
-      - ".markdownlint-cli2.jsonc"
-      - ".textlintrc"
 
 permissions:
   contents: read
-  pull-requests: write
 
 jobs:
   lint:
@@ -37,13 +26,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run textlint with reviewdog
-        uses: tsuyoshicho/action-textlint@689c87690ef3b954b5039bcb15589863c9e021a1 # v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          reporter: github-pr-review
-          level: warning
-          textlint_flags: "articles/**/*.md books/**/*.md"
+      - name: Run textlint
+        run: npx textlint "articles/**/*.md" "books/**/*.md"
 
       - name: Run markdownlint
         run: npx markdownlint-cli2 "articles/**/*.md" "books/**/*.md"
+
+      - name: Run secretlint
+        run: npx secretlint "**/*"

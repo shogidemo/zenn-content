@@ -23,25 +23,6 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-  test:
-    needs: metadata
-    runs-on: ubuntu-latest
-    if: needs.metadata.outputs.package-ecosystem == 'npm_and_yarn'
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-
-      - name: Setup Node.js
-        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6
-        with:
-          node-version-file: ".nvmrc"
-          cache: "npm"
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run lint
-        run: npm run lint
-
   validate-actions:
     needs: metadata
     runs-on: ubuntu-latest
@@ -57,12 +38,11 @@ jobs:
           done
 
   auto-merge:
-    needs: [metadata, test, validate-actions]
+    needs: [metadata, validate-actions]
     runs-on: ubuntu-latest
     if: |
       always() &&
       needs.metadata.result == 'success' &&
-      (needs.test.result == 'success' || needs.test.result == 'skipped') &&
       (needs.validate-actions.result == 'success' || needs.validate-actions.result == 'skipped') &&
       (needs.metadata.outputs.update-type == 'version-update:semver-minor' ||
        needs.metadata.outputs.update-type == 'version-update:semver-patch')
