@@ -3,7 +3,17 @@ title: "Codex CLI vs Copilot CLI：180回計測してわかった「大差ない
 emoji: "⏱️"
 type: "tech"
 topics: ["codex", "copilot", "cli", "benchmark", "ai"]
-published: false
+published: true
+published_at: "2026-02-02 07:00"
+qiita_sync: true
+x_post: |
+  Codex CLIとCopilot CLI、どっちが速い？
+
+  体感では「Copilotの方が遅い」と思っていたのに、180回計測したら統計的に有意差なしでした。
+
+  結論：レビュー用途ならどちらでもOK
+
+  {url}
 ---
 
 :::message
