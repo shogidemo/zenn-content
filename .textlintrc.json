@@ -10,11 +10,15 @@
       "ja-no-mixed-period": false,
       "no-doubled-joshi": {
         "allow": ["に", "で", "が", "と"]
+      },
+      "ja-unnatural-alphabet": {
+        "allow": ["a", "i", "u", "e", "o", "n", "/[A-Z]/", "t検定", "F検定", "z検定"]
       }
     },
     "preset-ja-spacing": {
       "ja-space-between-half-and-full-width": {
-        "space": "never"
+        "space": "never",
+        "allows": ["/:::details /"]
       },
       "ja-no-space-around-parentheses": false
     }
