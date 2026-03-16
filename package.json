@@ -17,11 +17,11 @@
     "qiita:post": "node .github/scripts/post-to-qiita.js --dry-run"
   },
   "devDependencies": {
-    "@commitlint/cli": "^20.4.3",
-    "@commitlint/config-conventional": "^20.4.3",
+    "@commitlint/cli": "^20.5.0",
+    "@commitlint/config-conventional": "^20.5.0",
     "@secretlint/secretlint-rule-preset-recommend": "^11.3.1",
     "gray-matter": "^4.0.3",
-    "lefthook": "^2.1.3",
+    "lefthook": "^2.1.4",
     "markdownlint-cli2": "^0.21.0",
     "prettier": "^3.8.1",
     "secretlint": "^11.3.1",
