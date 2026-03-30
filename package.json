@@ -19,17 +19,17 @@
   "devDependencies": {
     "@commitlint/cli": "^20.5.0",
     "@commitlint/config-conventional": "^20.5.0",
-    "@secretlint/secretlint-rule-preset-recommend": "^11.4.0",
+    "@secretlint/secretlint-rule-preset-recommend": "^11.4.1",
     "gray-matter": "^4.0.3",
     "lefthook": "^2.1.4",
     "markdownlint-cli2": "^0.22.0",
     "prettier": "^3.8.1",
-    "secretlint": "^11.4.0",
+    "secretlint": "^11.4.1",
     "textlint": "^15.5.2",
     "textlint-filter-rule-comments": "^1.3.0",
     "textlint-rule-preset-ja-spacing": "^2.4.3",
     "textlint-rule-preset-ja-technical-writing": "^12.0.2",
     "twitter-api-v2": "^1.29.0",
-    "zenn-cli": "^0.4.6"
+    "zenn-cli": "^0.4.7"
   }
 }
