@@ -1,0 +1,4 @@
+interface:
+  display_name: "Article Edit Quality Review"
+  short_description: "記事修正時に読者体験、重複、主旨、誤解リスクを全体確認する"
+  default_prompt: "記事の一部修正後に、該当箇所だけでなく記事全体の読みやすさ、冗長さ、主旨、誤解リスクを確認してください。"
