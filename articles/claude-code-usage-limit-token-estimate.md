@@ -1,5 +1,5 @@
 ---
-title: "Claude Codeの5時間制限をAPI料金換算してみたら約62ドル相当だった"
+title: "Claude Codeの5時間制限をAPI料金換算してみたら約62ドル相当だった ※Claude TeamプランのPremiumシート"
 emoji: "📏"
 type: "tech"
 topics: ["claudecode", "ai", "llm", "benchmark", "productivity"]
@@ -7,11 +7,7 @@ published: true
 published_at: "2026-05-07 07:00"
 ---
 
-:::message
-この記事は、Claude Codeの利用制限が足りないと感じている方向けです。
-
-私の環境で「5時間制限」「7日制限」がどれくらいのトークン構成に相当しそうかを測り、API料金に換算した結果を共有します。
-:::
+Claude Codeの5時間制限は、API料金に換算するとどれくらいの規模感なのでしょうか。
 
 ## TL;DR
 
