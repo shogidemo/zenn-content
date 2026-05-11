@@ -17,7 +17,7 @@
     "qiita:post": "node .github/scripts/post-to-qiita.js --dry-run"
   },
   "devDependencies": {
-    "@commitlint/cli": "^20.5.3",
+    "@commitlint/cli": "^21.0.0",
     "@commitlint/config-conventional": "^20.5.3",
     "@secretlint/secretlint-rule-preset-recommend": "^12.3.1",
     "gray-matter": "^4.0.3",
