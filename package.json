@@ -21,7 +21,7 @@
     "@commitlint/config-conventional": "^21.0.1",
     "@secretlint/secretlint-rule-preset-recommend": "^13.0.2",
     "gray-matter": "^4.0.3",
-    "lefthook": "^2.1.6",
+    "lefthook": "^2.1.8",
     "markdownlint-cli2": "^0.22.1",
     "prettier": "^3.8.3",
     "secretlint": "^13.0.2",
