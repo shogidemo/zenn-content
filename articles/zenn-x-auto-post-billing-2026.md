@@ -45,7 +45,7 @@ https://zenn.dev/beachone1155/articles/20251001-x-automation
 :::message
 **動作確認環境**
 
-- Node.js: 20.x（`.nvmrc`で指定）
+- Node.js: 20.x（`.nvmrc` で指定）
 - twitter-api-v2: 1.x
 - GitHub Actions: ubuntu-latest
   :::
@@ -142,15 +142,15 @@ sequenceDiagram
 {ハッシュタグ} #zenn
 ```
 
-ハッシュタグは記事の`topics`から自動生成されます。
+ハッシュタグは記事の `topics` から自動生成されます。
 
 :::message
-`topics`はインライン形式（`topics: ["a", "b"]`）のみ対応しています。YAML複数行リスト形式（`topics:\n  - a`）は対応していません。
+`topics` はインライン形式（`topics: ["a", "b"]`）のみ対応しています。YAML複数行リスト形式（`topics:\n  - a`）は対応していません。
 :::
 
 ### カスタム投稿内容
 
-Front Matterに`x_post`を追加すると、カスタム内容でX投稿できます：
+Front Matterに `x_post` を追加すると、カスタム内容でX投稿できます：
 
 ```yaml
 ---
@@ -166,11 +166,11 @@ x_post: |
 ```
 
 - `{url}` プレースホルダーは記事URLに自動置換される（現時点で利用可能なプレースホルダーは `{url}` のみ）
-- `x_post`がなければ定型フォーマットにフォールバックする
+- `x_post` がなければ定型フォーマットにフォールバックする
 
 ## Workflow 1: 即時公開用
 
-記事を`published: true`にしてpushしたタイミングでXに投稿します。
+記事を `published: true` にしてpushしたタイミングでXに投稿します。
 
 :::details share-to-x.yml（クリックで展開）
 
@@ -316,11 +316,11 @@ jobs:
 
 ### ポイント
 
-- `fetch-depth: 2`で前のコミットと比較し、**新規公開を検出**
-- `published_at`がある記事は予約公開用Workflowに任せるため**スキップ**
+- `fetch-depth: 2` で前のコミットと比較し、**新規公開を検出**
+- `published_at` がある記事は予約公開用Workflowに任せるため**スキップ**
 
 :::message
-`git diff HEAD~1 HEAD`は直前のコミットとの比較です。複数コミットを一括pushする場合は、`github.event.before`と`github.sha`を使った範囲比較に変更することで、より確実に検出できます。
+`git diff HEAD~1 HEAD` は直前のコミットとの比較です。複数コミットを一括pushする場合は、`github.event.before` と `github.sha` を使った範囲比較に変更することで、より確実に検出できます。
 :::
 
 ## Workflow 2: 予約公開用
@@ -485,16 +485,16 @@ jobs:
 
 ### 予約公開のポイント
 
-- `published_at`をパースしてJST→UTC変換
-- 投稿後に**`x_shared: true`をFront Matterに追加**して重複投稿を防止
+- `published_at` をパースしてJST→UTC変換
+- 投稿後に**`x_shared: true` をFront Matterに追加**して重複投稿を防止
 - 変更を自動コミット＆プッシュ
-- X投稿が失敗した記事には`x_shared`を追加しない（次回実行時に再試行される）
+- X投稿が失敗した記事には `x_shared` を追加しない（次回実行時に再試行される）
 - 複数記事がある場合、一部が失敗しても成功した記事は処理される
 
 :::message alert
-このWorkflowはリポジトリへの書き込みが必要です。`git push`が失敗する場合は以下を確認してください：
+このWorkflowはリポジトリへの書き込みが必要です。`git push` が失敗する場合は以下を確認してください：
 
-- **権限不足**: Workflow内で`permissions: contents: write`を追加するか、リポジトリ設定でWorkflowの権限を変更
+- **権限不足**: Workflow内で `permissions: contents: write` を追加するか、リポジトリ設定でWorkflowの権限を変更
 - **ブランチ保護**: mainブランチが保護されている場合、GitHub Actionsからのpushが拒否されることがある。保護ルールで「Allow GitHub Actions to create and approve pull requests」を有効にするか、PATを使用する
   :::
 
@@ -509,7 +509,7 @@ published_at: 2026-01-22 07:00 # JSTで指定（YYYY-MM-DD HH:MM形式）
 ```
 
 :::message
-`published_at`は**JST（日本時間）で`YYYY-MM-DD HH:MM`形式**で記述してください（[Zenn CLIガイド](https://zenn.dev/zenn/articles/zenn-cli-guide)参照）。スクリプト内で`+0900`としてUTCに変換しています。
+`published_at` は**JST（日本時間）で `YYYY-MM-DD HH:MM` 形式**で記述してください（[Zenn CLIガイド](https://zenn.dev/zenn/articles/zenn-cli-guide)参照）。スクリプト内で `+0900` としてUTCに変換しています。
 :::
 
 投稿後は以下のようになります：
@@ -534,7 +534,7 @@ x_shared: true # 自動追加される
 :::message alert
 **権限変更後はトークン再生成が必須**
 
-権限を「Read and Write」に変更した後、必ずAccess TokenとAccess Token Secretを再生成してください。古いトークンはRead権限のままなので、投稿しようとすると`401 Unauthorized`エラーが発生します。
+権限を「Read and Write」に変更した後、必ずAccess TokenとAccess Token Secretを再生成してください。古いトークンはRead権限のままなので、投稿しようとすると `401 Unauthorized` エラーが発生します。
 :::
 
 ### 2. GitHub Secretsの設定
@@ -551,13 +551,13 @@ x_shared: true # 自動追加される
 
 ### 3. Workflowファイルを配置
 
-上記の2つのWorkflowファイルを`.github/workflows/`に配置してpushすれば完了です。
+上記の2つのWorkflowファイルを `.github/workflows/` に配置してpushすれば完了です。
 
 ## まとめ
 
-- **即時公開**：`published: true`にしてpush → 自動でXに投稿
-- **予約公開**：`published_at`を設定 → 公開時刻に自動でXに投稿
-- 重複投稿は`x_shared: true`で防止
+- **即時公開**：`published: true` にしてpush → 自動でXに投稿
+- **予約公開**：`published_at` を設定 → 公開時刻に自動でXに投稿
+- 重複投稿は `x_shared: true` で防止
 
 実装はシンプルですが、Zennの予約公開と連携できるので便利に使っています。
 
