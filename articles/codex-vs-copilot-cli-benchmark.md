@@ -182,7 +182,7 @@ copilot --model gpt-5.2 -s -p "プロンプト"
 この結果は以下の条件に依存します。
 
 - 計測日: 2026年2月1日
-- Codex CLI: 0.93.0 / Copilot CLI: 0.0.400
+- Codex CLI: 0.93.0/Copilot CLI: 0.0.400
 - モデル: GPT-5.2（reasoning_effort: xhigh）
 - 計測回数: 180回（各CLI 90回）
 - タスク: explain、review、plan-review、code-improve、bug-find
