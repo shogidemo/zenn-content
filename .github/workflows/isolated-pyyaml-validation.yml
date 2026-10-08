@@ -1,0 +1,72 @@
+name: Isolated PyYAML Ubuntu validation
+on:
+  push:
+    branches: [codex/verify-pyyaml-ubuntu26-20261008]
+permissions:
+  contents: read
+jobs:
+  verify:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-26.04]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - name: Checkout fixed candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Runner and system Python versions
+        run: |
+          printf 'ImageOS=%s ImageVersion=%s\n' "$ImageOS" "$ImageVersion"
+          python3 --version
+          python3 -c "import importlib.util; print('baseline yaml available:', importlib.util.find_spec('yaml') is not None)"
+      - name: Validate using exact candidate step
+        run: |
+          python3 -m venv "$RUNNER_TEMP/workflow-validation"
+          PYTHON="$RUNNER_TEMP/workflow-validation/bin/python"
+          "$PYTHON" -m pip install --disable-pip-version-check --only-binary=:all: PyYAML==6.0.3
+          for file in .github/workflows/*.yml; do
+            echo "Validating $file"
+            "$PYTHON" -c "import yaml; yaml.safe_load(open('$file'))"
+          done
+
+      - name: Check parser and shell behavior
+        run: |
+          "$RUNNER_TEMP/workflow-validation/bin/python" - <<'PYTEST'
+          import hashlib, pathlib, subprocess, yaml
+          print("PyYAML:", yaml.__version__)
+          assert yaml.__version__ == "6.0.3"
+          candidate = yaml.safe_load(pathlib.Path(".github/workflows/dependabot-auto-merge.yml").read_text())
+          verifier = yaml.safe_load(pathlib.Path(".github/workflows/isolated-pyyaml-validation.yml").read_text())
+          expected = candidate["jobs"]["validate-actions"]["steps"][1]["run"]
+          actual = verifier["jobs"]["verify"]["steps"][2]["run"]
+          assert actual == expected, "Verifier differs from candidate run block"
+          print("Candidate run SHA256:", hashlib.sha256(expected.encode()).hexdigest())
+          files = list(pathlib.Path(".github/workflows").glob("*.yml"))
+          assert len(files) == 7
+          count = 0
+          for path in files:
+              doc = yaml.safe_load(path.read_text())
+              for job in doc["jobs"].values():
+                  for step in job.get("steps", []):
+                      if "run" in step:
+                          subprocess.run(["bash", "-n"], input=step["run"], text=True, check=True)
+                          count += 1
+          result = subprocess.run([str(pathlib.Path(__import__('sys').executable)), "-c", "import yaml; yaml.safe_load('jobs: [unterminated')"], capture_output=True, text=True)
+          assert result.returncode != 0 and "ParserError" in result.stderr
+          print("Invalid YAML correctly rejected")
+          print("Workflow YAML parsed:", len(files), "shell blocks checked:", count)
+          PYTEST
+      - name: Setup repository Node version
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      - name: Check JavaScript syntax without executing posting scripts
+        run: |
+          node --version
+          for file in .github/scripts/*.js; do
+            node --check "$file"
+          done
