@@ -32,9 +32,12 @@ jobs:
 
       - name: Validate workflow syntax
         run: |
+          python3 -m venv "$RUNNER_TEMP/workflow-validation"
+          PYTHON="$RUNNER_TEMP/workflow-validation/bin/python"
+          "$PYTHON" -m pip install --disable-pip-version-check --only-binary=:all: PyYAML==6.0.3
           for file in .github/workflows/*.yml; do
             echo "Validating $file"
-            python3 -c "import yaml; yaml.safe_load(open('$file'))"
+            "$PYTHON" -c "import yaml; yaml.safe_load(open('$file'))"
           done
 
   auto-merge:
