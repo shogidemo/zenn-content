@@ -1,0 +1,96 @@
+name: Isolated Zenn merged compatibility
+on:
+  push:
+    branches: [codex/verify-zenn-merge-20261012]
+permissions:
+  contents: read
+jobs:
+  verify:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-26.04]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - name: Checkout candidate and baseline
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 5
+          persist-credentials: false
+      - name: Setup repository Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Execute merged YAML validation step
+        run: |
+          python3 -m venv "$RUNNER_TEMP/workflow-validation"
+          PYTHON="$RUNNER_TEMP/workflow-validation/bin/python"
+          "$PYTHON" -m pip install --disable-pip-version-check --only-binary=:all: PyYAML==6.0.3
+          for file in .github/workflows/*.yml; do
+            echo "Validating $file"
+            "$PYTHON" -c "import yaml; yaml.safe_load(open('$file'))"
+          done
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Run repository linters
+        run: |
+          npx textlint "articles/**/*.md" "books/**/*.md"
+          npx markdownlint-cli2 "articles/**/*.md" "books/**/*.md"
+          npx secretlint "**/*"
+      - name: Verify TOML parser override through CLI
+        run: |
+          node - <<'JS'
+          const assert = require('node:assert/strict');
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const os = require('node:os');
+          const cp = require('node:child_process');
+          const toml = require('smol-toml');
+          const parsed = toml.parse('[config]\nMD013 = false\n');
+          assert.equal(parsed.config.MD013, false);
+          assert.deepEqual(Object.keys(parsed), ['config']);
+          assert.deepEqual(Object.keys(parsed.config), ['MD013']);
+          const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'smol-cli-test-'));
+          try {
+            const file = path.join(temp, 'fixture.md');
+            fs.writeFileSync(file, '# Heading\n\n' + 'word '.repeat(40).trim() + '\n');
+            const config = path.join(temp, '.markdownlint-cli2.toml');
+            fs.writeFileSync(config, '[config]\nMD013 = false\n');
+            const bin = path.resolve('node_modules/.bin/markdownlint-cli2');
+            cp.execFileSync(bin, ['--config', config, file], {cwd:temp, stdio:'pipe'});
+            fs.writeFileSync(config, '[config]\nMD013 = true\n');
+            let rejected = false;
+            try { cp.execFileSync(bin, ['--config', config, file], {cwd:temp, stdio:'pipe'}); }
+            catch (error) { rejected = error.status === 1 && (String(error.stdout) + String(error.stderr)).includes('MD013'); }
+            assert(rejected, 'TOML config did not enable MD013');
+            console.log('TOML CLI positive and negative fixtures passed');
+          } finally { fs.rmSync(temp, {recursive:true, force:true}); }
+          JS
+      - name: Validate YAML shell and mock major comments
+        run: |
+          python3 -m venv "$RUNNER_TEMP/maintenance-venv"
+          "$RUNNER_TEMP/maintenance-venv/bin/python" -m pip install --only-binary=:all: PyYAML==6.0.3
+          "$RUNNER_TEMP/maintenance-venv/bin/python" verification/maintenance-tests.py .
+          for file in .github/scripts/*.js; do node --check "$file"; done
+      - name: Recheck security advisories independently of lint
+        run: |
+          set +e
+          npm audit --package-lock-only --ignore-scripts --json > "$RUNNER_TEMP/audit.json"
+          AUDIT_STATUS=$?
+          set -e
+          if [ "$AUDIT_STATUS" -gt 1 ]; then exit "$AUDIT_STATUS"; fi
+          node - "$RUNNER_TEMP/audit.json" <<'JS'
+          const assert = require('node:assert/strict');
+          const report = require(process.argv[2]);
+          assert(!report.error && report.metadata && report.vulnerabilities, 'Audit request failed');
+          for (const name of ['diff','fast-uri','smol-toml']) {
+            assert(!report.vulnerabilities[name], `${name} remains vulnerable`);
+          }
+          console.log('Audit remaining:', JSON.stringify(report.metadata.vulnerabilities));
+          console.log('Resolved advisory packages: diff, fast-uri, smol-toml');
+          JS
+      - name: Test scheduled posting with synthetic dry-run fixtures only
+        run: |
+          "$RUNNER_TEMP/maintenance-venv/bin/python" verification/scheduled-dryrun.py .
