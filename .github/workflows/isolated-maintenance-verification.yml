@@ -16,7 +16,7 @@ jobs:
       - name: Checkout candidate and baseline
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 3
+          fetch-depth: 4
           persist-credentials: false
       - name: Setup repository Node
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
@@ -39,7 +39,10 @@ jobs:
           const os = require('node:os');
           const cp = require('node:child_process');
           const toml = require('smol-toml');
-          assert.deepEqual(toml.parse('[config]\nMD013 = false\n'), {config:{MD013:false}});
+          const parsed = toml.parse('[config]\nMD013 = false\n');
+          assert.equal(parsed.config.MD013, false);
+          assert.deepEqual(Object.keys(parsed), ['config']);
+          assert.deepEqual(Object.keys(parsed.config), ['MD013']);
           const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'smol-cli-test-'));
           try {
             const file = path.join(temp, 'fixture.md');
@@ -51,7 +54,7 @@ jobs:
             fs.writeFileSync(config, '[config]\nMD013 = true\n');
             let rejected = false;
             try { cp.execFileSync(bin, ['--config', config, file], {cwd:temp, stdio:'pipe'}); }
-            catch (error) { rejected = String(error.stdout).includes('MD013'); }
+            catch (error) { rejected = error.status === 1 && (String(error.stdout) + String(error.stderr)).includes('MD013'); }
             assert(rejected, 'TOML config did not enable MD013');
             console.log('TOML CLI positive and negative fixtures passed');
           } finally { fs.rmSync(temp, {recursive:true, force:true}); }
