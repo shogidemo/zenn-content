@@ -16,7 +16,7 @@ jobs:
       - name: Checkout candidate and baseline
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 4
+          fetch-depth: 5
           persist-credentials: false
       - name: Setup repository Node
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
@@ -46,7 +46,7 @@ jobs:
           const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'smol-cli-test-'));
           try {
             const file = path.join(temp, 'fixture.md');
-            fs.writeFileSync(file, '# Heading\n\n' + 'x'.repeat(150) + '\n');
+            fs.writeFileSync(file, '# Heading\n\n' + 'word '.repeat(40).trim() + '\n');
             const config = path.join(temp, '.markdownlint-cli2.toml');
             fs.writeFileSync(config, '[config]\nMD013 = false\n');
             const bin = path.resolve('node_modules/.bin/markdownlint-cli2');
