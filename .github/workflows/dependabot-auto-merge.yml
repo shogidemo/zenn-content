@@ -19,7 +19,7 @@ jobs:
     steps:
       - name: Fetch Dependabot metadata
         id: metadata
-        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v2
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -57,6 +57,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   label-major:
+    concurrency:
+      group: ${{ github.workflow }}-major-warning-${{ github.event.pull_request.number }}
+      cancel-in-progress: false
     needs: metadata
     runs-on: ubuntu-latest
     if: needs.metadata.outputs.update-type == 'version-update:semver-major'
@@ -69,14 +72,30 @@ jobs:
 
       - name: Add comment for major update
         run: |
-          gh pr comment "$PR_URL" --body "## :warning: メジャーバージョンアップデート
+          set -euo pipefail
+
+          COMMENT_ID=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" --paginate --slurp |
+            jq -r 'flatten | map(select(.user.login == "github-actions[bot]" and ((.body | contains("<!-- dependabot-major-warning -->")) or (.body | startswith("## :warning: メジャーバージョンアップデート"))))) | last | .id // empty')
+
+          BODY=$(cat <<EOF
+          <!-- dependabot-major-warning -->
+          ## :warning: メジャーバージョンアップデート
 
           このPRはメジャーバージョンのアップデートを含んでいます。
           Breaking changesがある可能性があるため、手動でのレビューが必要です。
 
-          **更新内容**: ${{ needs.metadata.outputs.dependency-names }}
+          **更新内容**: $DEPENDENCY_NAMES
 
-          確認後、問題がなければマージしてください。"
+          確認後、問題がなければマージしてください。
+          EOF
+          )
+
+          if [ -n "$COMMENT_ID" ]; then
+            gh api --method PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$COMMENT_ID" -f body="$BODY"
+          else
+            gh api --method POST "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" -f body="$BODY"
+          fi
         env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          DEPENDENCY_NAMES: ${{ needs.metadata.outputs.dependency-names }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
